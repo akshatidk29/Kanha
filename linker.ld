@@ -2,7 +2,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x1000;
+    . = 0x10000;
 
     .text :
     {
@@ -22,5 +22,6 @@ SECTIONS
     .bss :
     {
         *(.bss)
+        *(COMMON)
     }
 }
