@@ -1,9 +1,11 @@
 CC = gcc
 AS = nasm
 LD = ld
+PYTHON = python3
 OBJCOPY = objcopy
 
 BUILD = build
+TOOLS = tools
 
 CFLAGS = -m32 \
          -ffreestanding \
@@ -21,17 +23,17 @@ $(BUILD)/boot.bin: boot/boot.asm
 	$(AS) -f bin $< -o $@
 
 
-# Kernel entry
+# Kernel Entry
 $(BUILD)/start.o: kernel/arch/x86/start.asm
 	$(AS) -f elf32 $< -o $@
 
 
-# C kernel
+# C Kernel
 $(BUILD)/kernel.o: kernel/core/kernel.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 
-# Link kernel
+# Link Kernel
 $(BUILD)/kernel.elf: $(BUILD)/start.o $(BUILD)/kernel.o linker/linker.ld
 	$(LD) -m elf_i386 \
 	      -T linker/linker.ld \
@@ -44,11 +46,17 @@ $(BUILD)/kernel.elf: $(BUILD)/start.o $(BUILD)/kernel.o linker/linker.ld
 $(BUILD)/kernel.bin: $(BUILD)/kernel.elf
 	$(OBJCOPY) -O binary $< $@
 
+# Make Header
+$(BUILD)/header.bin: $(BUILD)/kernel.bin
+	$(PYTHON) $(TOOLS)/makeHeader.py $(BUILD)/kernel.bin $(BUILD)/header.bin
 
-# Disk image
-$(BUILD)/kanha.img: $(BUILD)/boot.bin $(BUILD)/kernel.bin
-	cat $(BUILD)/boot.bin $(BUILD)/kernel.bin > $@
-
+# Make Image
+$(BUILD)/kanha.img: $(BUILD)/boot.bin $(BUILD)/header.bin $(BUILD)/kernel.bin tools/makeImage.py
+	$(PYTHON) tools/makeImage.py \
+		$(BUILD)/boot.bin \
+		$(BUILD)/header.bin \
+		$(BUILD)/kernel.bin \
+		$@
 
 # Run
 run: $(BUILD)/kanha.img

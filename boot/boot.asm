@@ -14,18 +14,52 @@ ORG 0x7C00
     and al, 0xFE
     out 0x92, al
 
-; Read Sector 2 into 0x1000:0x0000 => 0x10000
-    mov ax, 0x1000
-    mov es, ax                              ; ES = 0x1000
+; Read Sector 2 into 0x0800:0x0000
+    mov ax, 0x0800
+    mov es, ax                              ; ES = 0x0800
 
     mov ah, 0x02                            ; Read Sectors
     mov al, 1                               ; Number of Sectors to read
     mov ch, 0                               ; Cylinder 0
-    mov cl, 2                               ; Sector 2 (kernel)
+    mov cl, 2                               ; Starting from Sector 2 (Header)
     mov dh, 0                               ; Head 0
     mov dl, [bootDriveVariable]             ; Boot drive number
-    mov bx, 0x0000                          ; ES:BX = 0x1000:0x0000 => 0x10000
+    mov bx, 0x0000                          ; ES:BX = 0x0800:0x0000
     int 0x13
+    jc diskErr
+
+; Read Header and check Magic Number and Kernel Size
+
+    cmp byte [es:0x0000], 0x4B              ; Check Magic Number 'K' 
+    jne diskErr
+
+    cmp byte [es:0x0001], 0x4E              ; Check Magic Number 'N'
+    jne diskErr
+
+    cmp byte [es:0x0002], 0x48              ; Check Magic Number 'H'
+    jne diskErr
+
+    cmp byte [es:0x0003], 0x41              ; Check Magic Number 'A'
+    jne diskErr
+
+    mov eax, [es:0x0004]                    ; Load Kernel Size into EAX
+    add eax, 511
+    shr eax, 9                              ; EAX = (SIZE + 511) / 512
+
+    mov [kernelSectors], eax
+
+    mov ax, 0x1000                          
+    mov es, ax                              
+    mov bx, 0x0000                          ; ES:BX = 0x1000:0x0000
+
+    mov ah, 0x02                            ; Read Sectors
+    mov al, [kernelSectors]                 ; Number of Sectors to read
+    mov ch, 0                               ; Cylinder 0
+    mov cl, 3                               ; Starting from Sector 3
+    mov dh, 0                               ; Head 0
+    mov dl, [bootDriveVariable]             ; Boot drive number
+    int 0x13
+    jc diskErr
 
 
 ; Changing System from Real Mode to Protected Mode
@@ -46,6 +80,10 @@ ORG 0x7C00
 
 
 
+diskErr:
+    cli
+    hlt
+    jmp diskErr
 
 
 
@@ -76,6 +114,8 @@ BITS 16
 bootDriveVariable:
     db 0
 
+kernelSectors:
+    dd 0
 
 
 ; GDT
