@@ -30,23 +30,39 @@ $(BUILD)/start.o: kernel/arch/x86/start.asm
 
 # C Kernel
 $(BUILD)/kernel.o: kernel/core/kernel.c 
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) \
+	-Ikernel/drivers/vga \
+	-Ikernel/arch/x86/interrupts \
+	-Ikernel -c $< -o $@
 
 # VGA Driver
 $(BUILD)/vga.o: kernel/drivers/vga/vga.c
-	@$(CC) $(CFLAGS) -Ikernel -c $< -o $@
+	@$(CC) $(CFLAGS) \
+	-Ikernel/drivers/vga \
+	-Ikernel/arch/x86/interrupts \
+	-Ikernel -c $< -o $@
 
-
+$(BUILD)/idt.o: kernel/arch/x86/interrupts/idt.c
+	@$(CC) $(CFLAGS) \
+	-Ikernel/drivers/vga \
+	-Ikernel/arch/x86/interrupts \
+	-Ikernel -c $< -o $@
 
 
 # Link Kernel
-$(BUILD)/kernel.elf: $(BUILD)/start.o $(BUILD)/kernel.o $(BUILD)/vga.o linker/linker.ld
+$(BUILD)/kernel.elf: \
+	$(BUILD)/start.o \
+	$(BUILD)/kernel.o \
+	$(BUILD)/vga.o \
+	$(BUILD)/idt.o \
+	linker/linker.ld 
 	@$(LD) -m elf_i386 \
 	      -T linker/linker.ld \
 	      -o $@ \
 	      $(BUILD)/start.o \
 	      $(BUILD)/kernel.o \
-	      $(BUILD)/vga.o
+	      $(BUILD)/vga.o \
+		  $(BUILD)/idt.o
 
 
 # ELF -> Binary
@@ -55,7 +71,10 @@ $(BUILD)/kernel.bin: $(BUILD)/kernel.elf
 
 # Make Header
 $(BUILD)/header.bin: $(BUILD)/kernel.bin
-	@$(PYTHON) $(TOOLS)/makeHeader.py $(BUILD)/kernel.bin $(BUILD)/header.bin
+	@$(PYTHON) \
+	$(TOOLS)/makeHeader.py \
+	$(BUILD)/kernel.bin \
+	$(BUILD)/header.bin
 
 # Make Image
 $(BUILD)/kanha.img: $(BUILD)/boot.bin $(BUILD)/header.bin $(BUILD)/kernel.bin tools/makeImage.py
