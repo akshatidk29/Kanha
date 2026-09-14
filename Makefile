@@ -20,28 +20,28 @@ all: $(BUILD)/kanha.img
 
 # Bootloader
 $(BUILD)/boot.bin: boot/boot.asm
-	$(AS) -f bin $< -o $@
+	@$(AS) -f bin $< -o $@
 
 
 # Kernel Entry
 $(BUILD)/start.o: kernel/arch/x86/start.asm
-	$(AS) -f elf32 $< -o $@
+	@$(AS) -f elf32 $< -o $@
 
 
 # C Kernel
 $(BUILD)/kernel.o: kernel/core/kernel.c 
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 # VGA Driver
 $(BUILD)/vga.o: kernel/drivers/vga/vga.c
-	$(CC) $(CFLAGS) -Ikernel -c $< -o $@
+	@$(CC) $(CFLAGS) -Ikernel -c $< -o $@
 
 
 
 
 # Link Kernel
 $(BUILD)/kernel.elf: $(BUILD)/start.o $(BUILD)/kernel.o $(BUILD)/vga.o linker/linker.ld
-	$(LD) -m elf_i386 \
+	@$(LD) -m elf_i386 \
 	      -T linker/linker.ld \
 	      -o $@ \
 	      $(BUILD)/start.o \
@@ -51,15 +51,15 @@ $(BUILD)/kernel.elf: $(BUILD)/start.o $(BUILD)/kernel.o $(BUILD)/vga.o linker/li
 
 # ELF -> Binary
 $(BUILD)/kernel.bin: $(BUILD)/kernel.elf
-	$(OBJCOPY) -O binary $< $@
+	@$(OBJCOPY) -O binary $< $@
 
 # Make Header
 $(BUILD)/header.bin: $(BUILD)/kernel.bin
-	$(PYTHON) $(TOOLS)/makeHeader.py $(BUILD)/kernel.bin $(BUILD)/header.bin
+	@$(PYTHON) $(TOOLS)/makeHeader.py $(BUILD)/kernel.bin $(BUILD)/header.bin
 
 # Make Image
 $(BUILD)/kanha.img: $(BUILD)/boot.bin $(BUILD)/header.bin $(BUILD)/kernel.bin tools/makeImage.py
-	$(PYTHON) tools/makeImage.py \
+	@$(PYTHON) tools/makeImage.py \
 		$(BUILD)/boot.bin \
 		$(BUILD)/header.bin \
 		$(BUILD)/kernel.bin \
@@ -67,10 +67,12 @@ $(BUILD)/kanha.img: $(BUILD)/boot.bin $(BUILD)/header.bin $(BUILD)/kernel.bin to
 
 # Run
 run: $(BUILD)/kanha.img
-	qemu-system-x86_64 \
+	@echo "RUNNING KANHA..."
+	@qemu-system-x86_64 \
 		-drive format=raw,file=$(BUILD)/kanha.img
 
 
 # Clean
 clean:
-	rm -rf $(BUILD)/* 
+	@echo "CLEANING BUILDS..."
+	@rm -rf $(BUILD)/* 

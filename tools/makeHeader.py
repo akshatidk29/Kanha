@@ -17,5 +17,3 @@ struct.pack_into("<I", header, 4, kernelSize)
 
 with open(headerPath, "wb") as f:
     f.write(header)
-
-print(f"Kernel size: {kernelSize} bytes")

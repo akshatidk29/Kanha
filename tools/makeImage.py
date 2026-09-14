@@ -41,8 +41,8 @@ image = boot + payload
 with open(imagePath, "wb") as f:
     f.write(image)
 
-print(f"Bootloader: {len(boot)} bytes")
-print(f"Header    : {len(header)} bytes")
-print(f"Kernel    : {len(kernel)} bytes")
-print(f"Payload   : {len(payload)} bytes")
-print(f"Image     : {len(image)} bytes")
+print(f"Bootloader : {len(boot)} bytes")
+print(f"Header     : {len(header)} bytes")
+print(f"Kernel     : {len(kernel)} bytes")
+print(f"Payload    : {len(payload)} bytes")
+print(f"Image      : {len(image)} bytes")
