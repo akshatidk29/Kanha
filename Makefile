@@ -29,17 +29,24 @@ $(BUILD)/start.o: kernel/arch/x86/start.asm
 
 
 # C Kernel
-$(BUILD)/kernel.o: kernel/core/kernel.c
+$(BUILD)/kernel.o: kernel/core/kernel.c 
 	$(CC) $(CFLAGS) -c $< -o $@
+
+# VGA Driver
+$(BUILD)/vga.o: kernel/drivers/vga/vga.c
+	$(CC) $(CFLAGS) -Ikernel -c $< -o $@
+
+
 
 
 # Link Kernel
-$(BUILD)/kernel.elf: $(BUILD)/start.o $(BUILD)/kernel.o linker/linker.ld
+$(BUILD)/kernel.elf: $(BUILD)/start.o $(BUILD)/kernel.o $(BUILD)/vga.o linker/linker.ld
 	$(LD) -m elf_i386 \
 	      -T linker/linker.ld \
 	      -o $@ \
 	      $(BUILD)/start.o \
-	      $(BUILD)/kernel.o
+	      $(BUILD)/kernel.o \
+	      $(BUILD)/vga.o
 
 
 # ELF -> Binary

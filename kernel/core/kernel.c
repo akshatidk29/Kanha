@@ -1,23 +1,14 @@
+#include "../drivers/vga/vga.h"
+
 void kernel_main(void)
 {
-    volatile unsigned char *video =
-        (volatile unsigned char *)0xB8000;
+    vga_initialize();
 
-    video[0] = 'K';
-    video[1] = 0x07;
+    vga_put_char('K');
+    vga_put_char('a');
+    vga_put_char('n');
+    vga_put_char('h');
+    vga_put_char('a');
 
-    video[2] = 'A';
-    video[3] = 0x07;
-
-    video[4] = 'N';
-    video[5] = 0x07;
-
-    video[6] = 'H';
-    video[7] = 0x07;
-
-    video[8] = 'A';
-    video[9] = 0x07;
-
-    while (1) {
-    }
+    while (1) {}
 }
