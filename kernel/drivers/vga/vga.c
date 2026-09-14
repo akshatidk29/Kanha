@@ -19,14 +19,28 @@ void vga_initialize(void)
 }
 
 void vga_put_char(char c)
-{
-    VGA_MEMORY[(row * VGA_WIDTH + column) * 2] = c;
-    VGA_MEMORY[(row * VGA_WIDTH + column) * 2 + 1] = 0x07;
+{   
+    if(c == '\n'){
+        column = 0;
+        row++;
+    }
+    else {
+        VGA_MEMORY[(row * VGA_WIDTH + column) * 2] = c;
+        VGA_MEMORY[(row * VGA_WIDTH + column) * 2 + 1] = 0x07;
 
-    column++;
+        column++;
+    }
+    
 
     if (column >= VGA_WIDTH) {
         column = 0;
         row++;
+    }
+}
+
+void vga_write(char* c){
+    while(*c != '\0'){
+        vga_put_char(*c);
+        c++;
     }
 }
