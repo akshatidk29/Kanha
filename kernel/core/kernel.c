@@ -4,6 +4,9 @@
 void kernel_main(void)
 {
     vga_initialize();
+    idt_initialize();
+
+    int x = 5 / 0;
 
     for(int i = 65; i < 75; i++){
         char c = i;
@@ -16,6 +19,5 @@ void kernel_main(void)
         }
     }
 
-    idt_initialize();
     while (1) {}
 }

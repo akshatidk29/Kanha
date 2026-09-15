@@ -15,6 +15,9 @@ CFLAGS = -m32 \
          -fno-unwind-tables \
          -fno-asynchronous-unwind-tables
 
+.PHONY: all clean run
+
+
 all: $(BUILD)/kanha.img
 
 
@@ -22,6 +25,9 @@ all: $(BUILD)/kanha.img
 $(BUILD)/boot.bin: boot/boot.asm
 	@$(AS) -f bin $< -o $@
 
+# ISR 
+$(BUILD)/isr.o: kernel/arch/x86/isr.asm
+	@$(AS) -f elf32 $< -o $@
 
 # Kernel Entry
 $(BUILD)/start.o: kernel/arch/x86/start.asm
@@ -42,6 +48,7 @@ $(BUILD)/vga.o: kernel/drivers/vga/vga.c
 	-Ikernel/arch/x86/interrupts \
 	-Ikernel -c $< -o $@
 
+# Interrupts
 $(BUILD)/idt.o: kernel/arch/x86/interrupts/idt.c
 	@$(CC) $(CFLAGS) \
 	-Ikernel/drivers/vga \
@@ -55,6 +62,7 @@ $(BUILD)/kernel.elf: \
 	$(BUILD)/kernel.o \
 	$(BUILD)/vga.o \
 	$(BUILD)/idt.o \
+	$(BUILD)/isr.o\
 	linker/linker.ld 
 	@$(LD) -m elf_i386 \
 	      -T linker/linker.ld \
@@ -62,7 +70,8 @@ $(BUILD)/kernel.elf: \
 	      $(BUILD)/start.o \
 	      $(BUILD)/kernel.o \
 	      $(BUILD)/vga.o \
-		  $(BUILD)/idt.o
+		  $(BUILD)/idt.o \
+		  $(BUILD)/isr.o
 
 
 # ELF -> Binary
@@ -84,14 +93,21 @@ $(BUILD)/kanha.img: $(BUILD)/boot.bin $(BUILD)/header.bin $(BUILD)/kernel.bin to
 		$(BUILD)/kernel.bin \
 		$@
 
+# Clean
+clean:
+	@echo "CLEANING BUILDS..."
+	@rm -rf $(BUILD)/* 
+
+	
 # Run
 run: $(BUILD)/kanha.img
 	@echo "RUNNING KANHA..."
 	@qemu-system-x86_64 \
 		-drive format=raw,file=$(BUILD)/kanha.img
 
-
-# Clean
-clean:
-	@echo "CLEANING BUILDS..."
-	@rm -rf $(BUILD)/* 
+test: $(BUILD)/kanha.img
+	@echo "RUNNING ON REMOTE PORT 1234..."
+	@qemu-system-x86_64 \
+		-drive format=raw,file=$(BUILD)/kanha.img \
+		-S \
+		-gdb tcp::1234

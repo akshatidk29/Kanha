@@ -1,6 +1,8 @@
 BITS 32
 
 global _start
+global idt_load
+
 extern kernel_main
 
 _start:
@@ -10,6 +12,12 @@ _start:
 
     ; Enter C
     call kernel_main
+
+idt_load:
+    mov eax, [esp + 4]
+    lidt [eax]
+    ret 
+
 
 .hang:
     cli
