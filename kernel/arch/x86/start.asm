@@ -2,6 +2,7 @@ BITS 32
 
 global _start
 global idt_load
+global enable_interrupts
 
 extern kernel_main
 
@@ -23,3 +24,7 @@ idt_load:
     cli
     hlt
     jmp .hang
+
+enable_interrupts:
+    sti
+    ret

@@ -1,10 +1,22 @@
+; Interrupt Service Routine
+
 BITS 32
 
 global isr0
-extern divide_by_zero_handler
+global isr33
+extern error_handler_divide_by_zero
+extern interrupt_handler_keyboard
 
 isr0:
     pusha
-    call divide_by_zero_handler
+    call error_handler_divide_by_zero
     popa
     iret
+
+
+isr33:                                          ; Keyboard Interrupt
+    pusha
+    call interrupt_handler_keyboard
+    popa
+    iret
+    

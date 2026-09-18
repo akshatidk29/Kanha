@@ -64,7 +64,7 @@ ORG 0x7C00
 
 ; Changing System from Real Mode to Protected Mode
 
-    cli                                     ; Disable Interrupts
+    cli                                     ; Disable Maskable Externel Hardware Interrupts
 
 ; Load GDT
     lgdt [gdtDescriptor]

@@ -8,6 +8,7 @@ BUILD = build
 TOOLS = tools
 
 CFLAGS = -m32 \
+		 -g   \
          -ffreestanding \
          -fno-pie \
          -fno-pic \
@@ -33,11 +34,17 @@ $(BUILD)/isr.o: kernel/arch/x86/isr.asm
 $(BUILD)/start.o: kernel/arch/x86/start.asm
 	@$(AS) -f elf32 $< -o $@
 
+# PIC
+$(BUILD)/pic.o: kernel/arch/x86/pic.c
+	@$(CC) $(CFLAGS) \
+	-Ikernel/arch/x86 \
+	-Ikernel -c $< -o $@
 
 # C Kernel
 $(BUILD)/kernel.o: kernel/core/kernel.c 
 	@$(CC) $(CFLAGS) \
 	-Ikernel/drivers/vga \
+	-Ikernel/arch/x86 \
 	-Ikernel/arch/x86/interrupts \
 	-Ikernel -c $< -o $@
 
@@ -48,21 +55,40 @@ $(BUILD)/vga.o: kernel/drivers/vga/vga.c
 	-Ikernel/arch/x86/interrupts \
 	-Ikernel -c $< -o $@
 
+# Keyboard Driver
+$(BUILD)/keyboard.o: kernel/drivers/keyboard/keyboard.c
+	@$(CC) $(CFLAGS) \
+	-Ikernel/arch/x86 \
+	-Ikernel/drivers/vga \
+	-Ikernel/drivers/keyboard \
+	-Ikernel/arch/x86/interrupts \
+	-Ikernel -c $< -o $@
+
 # Interrupts
-$(BUILD)/idt.o: kernel/arch/x86/interrupts/idt.c
+$(BUILD)/idt.o: kernel/arch/x86/interrupts/idt.c 
 	@$(CC) $(CFLAGS) \
 	-Ikernel/drivers/vga \
 	-Ikernel/arch/x86/interrupts \
 	-Ikernel -c $< -o $@
 
+# Exceptions
+$(BUILD)/exception.o: kernel/arch/x86/interrupts/exception.c
+	@$(CC) $(CFLAGS) \
+	-Ikernel/drivers/vga \
+	-Ikernel/arch/x86/ \
+	-Ikernel/arch/x86/interrupts \
+	-Ikernel -c $< -o $@
 
 # Link Kernel
 $(BUILD)/kernel.elf: \
 	$(BUILD)/start.o \
 	$(BUILD)/kernel.o \
 	$(BUILD)/vga.o \
+	$(BUILD)/keyboard.o \
 	$(BUILD)/idt.o \
-	$(BUILD)/isr.o\
+	$(BUILD)/isr.o \
+	$(BUILD)/exception.o \
+	$(BUILD)/pic.o \
 	linker/linker.ld 
 	@$(LD) -m elf_i386 \
 	      -T linker/linker.ld \
@@ -70,8 +96,11 @@ $(BUILD)/kernel.elf: \
 	      $(BUILD)/start.o \
 	      $(BUILD)/kernel.o \
 	      $(BUILD)/vga.o \
+		  $(BUILD)/keyboard.o \
 		  $(BUILD)/idt.o \
-		  $(BUILD)/isr.o
+		  $(BUILD)/isr.o \
+		  $(BUILD)/exception.o \
+		  $(BUILD)/pic.o
 
 
 # ELF -> Binary
