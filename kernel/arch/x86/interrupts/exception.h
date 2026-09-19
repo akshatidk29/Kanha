@@ -3,6 +3,6 @@
 
 #include "vga.h"
 
-void error_handler_divide_by_zero(void);
+void exception_handler_divide_by_zero(void);
 
 #endif

@@ -27,8 +27,6 @@ extern void isr0(void);
 extern void idt_load(struct idt_ptr* idt_ptr);
 
 void idt_initialize(void);
-void divide_by_zero_handler(void);
-
 
 
 // With Static, assertion is done using compile time

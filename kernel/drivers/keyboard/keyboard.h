@@ -3,7 +3,7 @@
 
 
 void keyboard_initialize(void);
-void interrupt_handler_keyboard(void);
+void irq_handler_keyboard(void);
 
 
 #endif

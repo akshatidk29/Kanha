@@ -19,12 +19,6 @@ idt_load:
     lidt [eax]
     ret 
 
-
-.hang:
-    cli
-    hlt
-    jmp .hang
-
 enable_interrupts:
     sti
     ret

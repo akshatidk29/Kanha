@@ -53,7 +53,7 @@ void keyboard_initialize(void){
     return;
 }
 
-void interrupt_handler_keyboard(void){
+void irq_handler_keyboard(void){
     uint8_t scanByte = inb(0x60);
     
     if(!(scanByte & (0x80))){        
