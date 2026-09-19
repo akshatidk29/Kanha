@@ -10,9 +10,10 @@ extern void enable_interrupts(void);
 
 void kernel_main(void)
 {
-    vga_initialize();
-    idt_initialize();
-    pic_initialize();
+    vga_initialize();           // Initialize VGA
+    idt_initialize();           // Initialize IDT
+    pic_initialize();           // Initialize PIC
+    pit_initialize(1000);       // Initialize PIT with 1KHz frequency
 
     ticks = 0;
 
