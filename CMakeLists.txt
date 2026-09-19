@@ -20,6 +20,7 @@ add_executable(kernel.elf
     kernel/arch/x86/interrupts/isr.asm
     kernel/arch/x86/interrupts/idt.c
     kernel/arch/x86/interrupts/exception.c
+    kernel/arch/x86/timer.c
 )
 
 target_include_directories(kernel.elf 

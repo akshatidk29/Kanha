@@ -7,8 +7,7 @@
 static unsigned int row;
 static unsigned int column;
 
-void vga_initialize(void)
-{
+void vga_initialize(void){
     row = 0;
     column = 0;
 
@@ -18,8 +17,7 @@ void vga_initialize(void)
     }
 }
 
-void vga_put_char(char c)
-{   
+void vga_put_char(char c){   
     if(c == '\n'){
         column = 0;
         row++;
@@ -42,6 +40,29 @@ void vga_put_char(char c)
         if(row >= VGA_HEIGHT){
             vga_scroll();
         }
+    }
+}
+
+void vga_put_int(uint32_t n){
+
+    if(n == 0){
+        vga_put_char('0');
+        return;
+    }
+
+    int i = 0;
+    char buffer[12];
+
+    while(n != 0){
+        buffer[i] = (n % 10) + '0';
+        n /= 10;
+        i++;
+    }
+
+    i--;
+    while(i >= 0){
+        vga_put_char(buffer[i]);
+        i--;
     }
 }
 
