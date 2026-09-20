@@ -19,6 +19,7 @@ void kernel_main(void)
 
     pic_clear_mask(0);          // Unmask Timer
     pic_clear_mask(1);          // Unmask Keyboard
+    //pic_clear_mask(12);         // Unmask Mouse
     
     enable_interrupts();
 

@@ -15,12 +15,13 @@ add_executable(kernel.elf
     kernel/arch/x86/boot/start.asm
     kernel/core/kernel.c
     kernel/drivers/vga/vga.c
+    kernel/drivers/mouse/mouse.c
     kernel/drivers/keyboard/keyboard.c
     kernel/arch/x86/hardware/pic.c
     kernel/arch/x86/interrupts/isr.asm
     kernel/arch/x86/interrupts/idt.c
     kernel/arch/x86/interrupts/exception.c
-    kernel/arch/x86/timer.c
+    kernel/arch/x86/hardware/timer.c
 )
 
 target_include_directories(kernel.elf 
@@ -31,6 +32,7 @@ target_include_directories(kernel.elf
     kernel/arch/x86/hardware
     kernel/drivers/vga
     kernel/drivers/keyboard
+    kernel/drivers/mouse
 )
 
 set(BUILD_DIR ${CMAKE_BINARY_DIR})

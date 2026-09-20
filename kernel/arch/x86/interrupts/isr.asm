@@ -5,10 +5,12 @@ BITS 32
 global isr0
 global isr32
 global isr33
+global isr44
 
 extern exception_handler_divide_by_zero
 extern irq_handler_timer
 extern irq_handler_keyboard
+extern irq_handler_mouse
 
 isr0:
     pusha
@@ -28,3 +30,8 @@ isr33:                                          ; Keyboard Interrupt
     popa
     iret
     
+isr44:
+    pusha
+    call irq_handler_mouse                      ; Mouse Interrupt
+    popa
+    iret
