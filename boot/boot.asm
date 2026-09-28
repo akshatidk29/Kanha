@@ -1,6 +1,11 @@
 BITS 16
 ORG 0x7C00
 
+E820_BUFFER      equ 0x7000
+E820_ENTRY_SIZE  equ 24
+E820_MAX_ENTRIES equ 32
+
+
 ; Initialize Segments
     xor ax, ax
     mov ds, ax                              ; DS = 0 
@@ -13,6 +18,41 @@ ORG 0x7C00
     or al, 0x02
     and al, 0xFE
     out 0x92, al
+
+; Get BIOS Memory Map
+    xor bx, bx                              ; Continuation Value
+    xor bp, bp                              ; Index into Memory Map
+
+    mov ax, 0x0000
+    mov es, ax                              ; Set ES to 0 for BIOS call
+    mov di, E820_BUFFER                     ; Set DI to buffer address for BIOS call
+
+e820NextEntry:
+
+    mov eax, 0xE820
+    mov edx, 0x534D4150                     ; "SMAP"
+    mov ecx, E820_ENTRY_SIZE                ; Size of each entry
+
+    int 0x15                                ; Call BIOS to get memory map
+
+    jc e820Done                             ; If carry flag set, error
+
+    cmp ax, 0x534D4150                      ; Check if SMAP returned successfully
+    jne diskErr
+
+    inc ebp                                 ; Increment entry count
+    cmp ebp, E820_MAX_ENTRIES
+    jae e820Done
+
+    add di, E820_ENTRY_SIZE                 ; Move to next entry
+    cmp ebx, 0
+    jne e820NextEntry                       ; Loop until ebx becomes 0
+
+
+e820Done:
+    mov dword [0x7400], ebp                 ; Number of memory map entries
+    mov dword [0x7404], E820_BUFFER         ; Address of memory map entries
+
 
 ; Read Sector 2 into 0x0800:0x0000
     mov ax, 0x0800

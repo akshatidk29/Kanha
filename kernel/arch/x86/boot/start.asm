@@ -11,6 +11,8 @@ _start:
     ; Set up stack
     mov esp, 0x90000
 
+    push 0x7400
+    
     ; Enter C
     call kernel_main
 

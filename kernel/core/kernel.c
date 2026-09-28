@@ -3,12 +3,14 @@
 #include "io.h"
 #include "pic.h"
 #include "timer.h"
+#include "e820.h"
+
 
 volatile uint32_t ticks;
 
 extern void enable_interrupts(void);
 
-void kernel_main(void)
+void kernel_main(struct bootInfo *bootInfo)
 {
     vga_initialize();           // Initialize VGA
     idt_initialize();           // Initialize IDT
@@ -37,7 +39,8 @@ void kernel_main(void)
     }
 
     vga_put_char('\n');
-    vga_put_int(ticks);
+    vga_put_int(bootInfo->e820Count);
+    vga_put_char('\n');
     vga_put_char('\n');
 
     for(int i = 65; i < 75; i++){

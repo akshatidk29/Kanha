@@ -33,6 +33,8 @@ target_include_directories(kernel.elf
     kernel/drivers/vga
     kernel/drivers/keyboard
     kernel/drivers/mouse
+    kernel/core
+    kernel/arch/x86/boot
 )
 
 set(BUILD_DIR ${CMAKE_BINARY_DIR})
