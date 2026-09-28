@@ -42,7 +42,40 @@ void vga_put_char(char c){
         vga_cursor();
         return;
     }
+
+    if(c == '\b'){
+        vga_clear_char();
+        if(column == 0){
+            if(row != 0){
+                row--;
+                column = VGA_WIDTH - 1;
+            }
+        }else{
+            column--;
+        }
+        vga_cursor();
+        return;
+    }
     
+    if(c == '\t'){
+
+        uint32_t k = 4;
+        vga_clear_char();
+        
+        if(column + k >= VGA_WIDTH){
+            column = 0;
+            row++;
+            if(row >= VGA_HEIGHT){
+                vga_scroll();
+            }
+            vga_cursor();
+            return;
+        }
+        column += k;
+        vga_cursor();
+        return;
+    }
+
     VGA_MEMORY[pos] = c;
     VGA_MEMORY[pos + 1] = 0x07;
 
