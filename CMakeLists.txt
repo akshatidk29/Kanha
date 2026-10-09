@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
+set(CMAKE_ASM_NASM_OBJECT_FORMAT elf32)
+
 project(Kanha
         VERSION 0.1.0
         LANGUAGES C ASM_NASM 
 )
 
-set(CMAKE_ASM_NASM_OBJECT_FORMAT elf32)
 set(CMAKE_ASM_NASM_FLAGS "-f elf32")
 set(CMAKE_C_FLAGS "-m32 -ffreestanding -g -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables")
 set(CMAKE_EXE_LINKER_FLAGS "-nostdlib -Wl,-m,elf_i386 -Wl,-T,${CMAKE_SOURCE_DIR}/linker/linker.ld -Wl,--oformat=elf32-i386")
