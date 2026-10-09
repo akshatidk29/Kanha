@@ -10,6 +10,31 @@ volatile uint32_t ticks;
 
 extern void enable_interrupts(void);
 
+void printE820(struct bootInfo *bootInfo){
+
+    struct e820Entry *entries =
+        (struct e820Entry *)(uintptr_t)bootInfo->e820Address;
+
+    vga_write("E820 Memory Map\n");
+
+    for (uint32_t i = 0; i < bootInfo->e820Count; i++) {
+
+        vga_write("BASE: ");
+        vga_put_int64(entries[i].base);
+
+        vga_write(" LENGTH: ");
+        vga_put_int64(entries[i].length); 
+
+        vga_write(" TYPE: ");
+        vga_put_int64(entries[i].type);  
+
+        vga_write(" ATTRIBUTES: ");
+        vga_put_int64(entries[i].attributes);
+
+        vga_write("\n");
+    }
+}
+
 void kernel_main(struct bootInfo *bootInfo)
 {
     vga_initialize();           // Initialize VGA
@@ -39,24 +64,9 @@ void kernel_main(struct bootInfo *bootInfo)
     }
 
     vga_put_char('\n');
-    vga_put_int(bootInfo->e820Count);
-    vga_put_char('\n');
+    printE820(bootInfo);
     vga_put_char('\n');
 
-    for(int i = 65; i < 75; i++){
-        char c = i;
-        vga_put_char(c);
-        vga_put_char('\n'); 
-
-        for(int j = 0; j < 1e7; j++){
-            j++;
-            j--;
-        }
-    }
-
-    vga_put_char('\n');
-    vga_put_int(100000);
-    vga_put_char('\n');
 
     while (1) {}
 }

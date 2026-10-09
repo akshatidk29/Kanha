@@ -140,6 +140,29 @@ void vga_put_int(uint32_t n){
     }
 }
 
+void vga_put_int64(uint64_t n){
+
+    if(n == 0){
+        vga_put_char('0');
+        return;
+    }
+
+    int i = 0;
+    char buffer[22];
+
+    while(n != 0){
+        buffer[i] = (n % 10) + '0';
+        n /= 10;
+        i++;
+    }
+
+    i--;
+    while(i >= 0){
+        vga_put_char(buffer[i]);
+        i--;
+    }
+}
+
 void vga_write(const char* c){
     while(*c != '\0'){
         vga_put_char(*c);

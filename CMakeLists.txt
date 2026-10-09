@@ -14,6 +14,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-nostdlib -Wl,-m,elf_i386 -Wl,-T,${CMAKE_SOURCE_DIR}
 add_executable(kernel.elf
     kernel/arch/x86/boot/start.asm
     kernel/core/kernel.c
+    kernel/lib/math.c
     kernel/drivers/vga/vga.c
     kernel/drivers/mouse/mouse.c
     kernel/drivers/keyboard/keyboard.c

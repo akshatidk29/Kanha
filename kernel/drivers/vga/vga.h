@@ -14,6 +14,7 @@ void vga_clear_char(void);
 void vga_write(const char* c);
 
 void vga_put_int(uint32_t n);
+void vga_put_int64(uint64_t n);
 
 void vga_scroll(void);
 
