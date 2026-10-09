@@ -4,7 +4,7 @@
 #include "pic.h"
 #include "timer.h"
 #include "e820.h"
-
+#include "pmm.h"
 
 volatile uint32_t ticks;
 
@@ -42,6 +42,8 @@ void kernel_main(struct bootInfo *bootInfo)
     pic_initialize();           // Initialize PIC
     pit_initialize(1000);       // Initialize PIT with 1KHz frequency
 
+    pmm_initialize(bootInfo);
+    
     ticks = 0;
 
     pic_clear_mask(0);          // Unmask Timer
@@ -65,6 +67,19 @@ void kernel_main(struct bootInfo *bootInfo)
 
     vga_put_char('\n');
     printE820(bootInfo);
+    vga_put_char('\n');
+
+    vga_write("TOTAL FRAMES: ");
+    vga_put_int(pmm_total_frames_count());
+    vga_put_char('\n');
+
+    vga_write("FREE FRAMES: ");
+    vga_put_int(pmm_free_frames_count());
+    vga_put_char('\n');
+
+    vga_write("RESERVED FRAMES: ");
+    vga_put_int(pmm_reserved_frames_count());
+    vga_put_char('\n');
     vga_put_char('\n');
 
 

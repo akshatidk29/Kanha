@@ -3,7 +3,7 @@ ENTRY(_start)
 SECTIONS
 {
     . = 0x10000;
-    kernel_start = .;
+    kernelStart = .;
 
     .text : ALIGN(16) {
         *(.text*)
@@ -23,7 +23,7 @@ SECTIONS
     }
 
     . = ALIGN(4096);
-    kernel_end = .;
+    kernelEnd = .;
 
     /DISCARD/ : {
         *(.interp)

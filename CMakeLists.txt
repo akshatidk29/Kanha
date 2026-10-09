@@ -15,6 +15,7 @@ add_executable(kernel.elf
     kernel/arch/x86/boot/start.asm
     kernel/core/kernel.c
     kernel/lib/math.c
+    kernel/mm/pmm.c
     kernel/drivers/vga/vga.c
     kernel/drivers/mouse/mouse.c
     kernel/drivers/keyboard/keyboard.c
@@ -35,6 +36,7 @@ target_include_directories(kernel.elf
     kernel/drivers/keyboard
     kernel/drivers/mouse
     kernel/core
+    kernel/mm
     kernel/arch/x86/boot
 )
 
