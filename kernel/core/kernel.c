@@ -36,6 +36,12 @@ void printE820(struct bootInfo *bootInfo){
     }
 }
 
+static void testPageFault(void){
+    volatile uint32_t *invalidAddress = (volatile uint32_t *)0x20000000;
+    uint32_t value = *invalidAddress;
+    (void)value;
+}
+
 void kernel_main(struct bootInfo *bootInfo)
 {
     vga_initialize();           // Initialize VGA
@@ -105,5 +111,7 @@ void kernel_main(struct bootInfo *bootInfo)
     vga_put_int(page_addr3);
     vga_put_char('\n');
 
+    testPageFault();
+    
     while (1) {}
 }
