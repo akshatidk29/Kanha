@@ -133,13 +133,13 @@ uint32_t pmm_deallocate_frame(uintptr_t phyAddress){
     if (phyAddress == 0 ||
         phyAddress >= PMM_MEMORY_LIMIT ||
         phyAddress % PMM_PAGE_SIZE != 0) {
-        return -1;
+        return 1;
     }
 
     uint32_t frame = phyAddress / PMM_PAGE_SIZE;
 
     if(!isFrameBitSet(used_bitMap, frame) || !isFrameBitSet(usable_bitMap, frame)){
-        return -1;
+        return 1;
     }
 
     unsetFrameBit(used_bitMap, frame);

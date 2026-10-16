@@ -25,6 +25,8 @@ add_executable(kernel.elf
     kernel/arch/x86/interrupts/idt.c
     kernel/arch/x86/interrupts/exception.c
     kernel/arch/x86/hardware/timer.c
+    kernel/arch/x86/paging/paging.c
+    kernel/arch/x86/paging/paging.asm
 )
 
 target_include_directories(kernel.elf 
@@ -39,6 +41,7 @@ target_include_directories(kernel.elf
     kernel/core
     kernel/mm
     kernel/arch/x86/boot
+    kernel/arch/x86/paging
 )
 
 set(BUILD_DIR ${CMAKE_BINARY_DIR})

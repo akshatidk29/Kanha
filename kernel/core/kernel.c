@@ -5,6 +5,7 @@
 #include "timer.h"
 #include "e820.h"
 #include "pmm.h"
+#include "paging.h"
 
 volatile uint32_t ticks;
 
@@ -43,27 +44,24 @@ void kernel_main(struct bootInfo *bootInfo)
     pit_initialize(1000);       // Initialize PIT with 1KHz frequency
 
     pmm_initialize(bootInfo);
+
+    pagingInitialize();
+
+    uint32_t pageDirectory = pagingGetDirectory();
+    vga_write("PAGE DIRECTORY AT: ");
+    vga_put_int(pageDirectory);
+    vga_put_char('\n');
     
+    pagingEnable(pageDirectory);
+
+
     ticks = 0;
 
     pic_clear_mask(0);          // Unmask Timer
     pic_clear_mask(1);          // Unmask Keyboard
-    //pic_clear_mask(12);         // Unmask Mouse
+    //pic_clear_mask(12);       // Unmask Mouse
     
     enable_interrupts();
-
-    // int x = 5 / 0;
-
-    for(int i = 65; i < 75; i++){
-        char c = i;
-        vga_put_char(c);
-        vga_put_char('\n'); 
-
-        for(int j = 0; j < 1e7; j++){
-            j++;
-            j--;
-        }
-    }
 
     vga_put_char('\n');
     printE820(bootInfo);
@@ -82,6 +80,30 @@ void kernel_main(struct bootInfo *bootInfo)
     vga_put_char('\n');
     vga_put_char('\n');
 
+    uint32_t page_addr = pmm_allocate_frame();
+    vga_write("PAGE ALLOCATED AT: ");
+    vga_put_int(page_addr);
+    vga_put_char('\n');
+
+    uint32_t page_addr2 = pmm_allocate_frame();
+    vga_write("PAGE ALLOCATED AT: ");
+    vga_put_int(page_addr2);
+    vga_put_char('\n');
+
+    uint32_t ret = pmm_deallocate_frame(page_addr);
+    vga_write("PAGE DEALLOCATED: ");
+    vga_put_int(ret);
+    vga_put_char('\n');    
+    
+    uint32_t ret2 = pmm_deallocate_frame(page_addr);
+    vga_write("PAGE DEALLOCATED: ");
+    vga_put_int(ret2);
+    vga_put_char('\n');
+
+    uint32_t page_addr3 = pmm_allocate_frame();
+    vga_write("PAGE ALLOCATED AT: ");
+    vga_put_int(page_addr3);
+    vga_put_char('\n');
 
     while (1) {}
 }
