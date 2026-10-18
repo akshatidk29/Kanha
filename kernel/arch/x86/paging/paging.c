@@ -53,7 +53,7 @@ uint32_t pagingGetDirectory(void){
 }
 
 
-int mapPage(uint32_t virt, uint32_t phys, uint32_t flags){
+int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
     
     if((virt & 0xFFFu) || (phys & 0xFFFu))
         return -1;
@@ -61,7 +61,7 @@ int mapPage(uint32_t virt, uint32_t phys, uint32_t flags){
     if(flags & ~(PAGE_WRITABLE | PAGE_USER))
         return -1;
 
-    uint32_t* dir = (uint32_t*)(uintptr_t)pagingGetDirectory();
+    uint32_t* dir = (uint32_t*)(uintptr_t)pd;
 
     uint32_t dirIdx = virt >> 22u;
     uint32_t tableIdx = (virt >> 12u) & 0x3FFu;
@@ -101,12 +101,12 @@ int mapPage(uint32_t virt, uint32_t phys, uint32_t flags){
 }
 
 
-int unMapPage(uint32_t virt){
+int unMapPage(uint32_t pd, uint32_t virt){
     
     if(virt & 0xFFFu)
         return -1;
 
-    uint32_t* dir = (uint32_t*)(uintptr_t)pagingGetDirectory();
+    uint32_t* dir = (uint32_t*)(uintptr_t)pd;
     uint32_t dirIdx = virt >> 22u;
     uint32_t tableIdx = (virt >> 12u) & 0x3FFu;
     uint32_t dirEntry = dir[dirIdx];
@@ -121,12 +121,12 @@ int unMapPage(uint32_t virt){
     return 0;
 }
 
-int getPhysicalAddress(uint32_t virt, uint32_t* phys){
+int getPhysicalAddress(uint32_t pd, uint32_t virt, uint32_t* phys){
 
     if(virt & 0xFFFu)
         return -1;
     
-    uint32_t* dir = (uint32_t*)(uintptr_t)pagingGetDirectory();
+    uint32_t* dir = (uint32_t*)(uintptr_t)pd;
     uint32_t dirIdx = virt >> 22u;
     uint32_t tableIdx = (virt >> 12u) & 0x3FFu;
     uint32_t dirEntry = dir[dirIdx];

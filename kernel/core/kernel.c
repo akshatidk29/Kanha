@@ -6,6 +6,7 @@
 #include "e820.h"
 #include "pmm.h"
 #include "paging.h"
+#include "addressSpace.h"
 
 volatile uint32_t ticks;
 
@@ -113,27 +114,51 @@ void kernel_main(struct bootInfo *bootInfo)
 
     // testPageFault();
 
-    uintptr_t physical = pmm_allocate_frame();
+    struct addressSpace kernelSpace;
+    kernelSpace.pageDirectory = pagingGetDirectory();
 
-    if (physical != 0 &&
-        mapPage(0x10000000u,
-                    (uint32_t)physical,
-                    PAGE_WRITABLE) == 0) {
-
-        volatile uint32_t *test =
-            (volatile uint32_t *)0x10000000u;
-
-        *test = 1234567890;
-        uint32_t value = *test;
-
-        vga_write("TEST: ");
-        vga_put_int(value);
-        vga_put_char('\n');
-
-        unMapPage(0x10000000u);
-        
-        vga_write("UNMAPPED PAGE\n");
+    struct addressSpace testSpace;
+    if (createAddressSpace(&testSpace) != 0) {
+        vga_write("Address Space creation failed\n");
+        for(;;)asm volatile ("cli; hlt");
     }
     
+    uintptr_t frame1 = pmm_allocate_frame();
+    uintptr_t frame2 = pmm_allocate_frame();
+    volatile uint32_t *test = (volatile uint32_t *)0x10000000u;
+
+    if (frame1 != 0 &&
+        addressSpaceMapPage(&kernelSpace, 0x10000000u,
+                    (uint32_t)frame1,
+                    PAGE_WRITABLE) == 0) {
+        *test = 123456789;
+    }
+
+    if (frame2 != 0 &&
+        addressSpaceMapPage(&testSpace, 0x10000000u,
+                    (uint32_t)frame2,
+                    PAGE_WRITABLE) == 0) {
+    }
+
+    vga_write("Switching To New Address Space\n");
+    if (switchAddressSpace(&testSpace) != 0) {
+        vga_write("Address Space switch failed\n");
+        for(;;)asm volatile ("cli; hlt");
+    }
+    *test = 987654321;
+    vga_write("NEW ADDRESS SPACE VALUE: ");
+    vga_put_int(*test);
+    vga_put_char('\n');
+    
+    if(switchAddressSpace(&kernelSpace) != 0){
+        vga_write("Address Space switch failed\n");
+        for(;;)asm volatile ("cli; hlt");
+    }
+    vga_write("Switched Back To Kernel Space\n");
+    
+    vga_write("KERNEL SPACE VALUE: ");
+    vga_put_int(*test);
+    vga_put_char('\n');
+
     while (1) {}
 }
