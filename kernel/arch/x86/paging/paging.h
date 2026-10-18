@@ -13,4 +13,10 @@ void pagingInitialize(void);
 uint32_t pagingGetDirectory(void);
 void pagingEnable(uint32_t page_directory_physical);
 
+
+int mapPage(uint32_t virt, uint32_t phys, uint32_t flags);
+int unMapPage(uint32_t virt);
+int getPhysicalAddress(uint32_t virt, uint32_t* phys);
+
+
 #endif

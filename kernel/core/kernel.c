@@ -111,7 +111,29 @@ void kernel_main(struct bootInfo *bootInfo)
     vga_put_int(page_addr3);
     vga_put_char('\n');
 
-    testPageFault();
+    // testPageFault();
+
+    uintptr_t physical = pmm_allocate_frame();
+
+    if (physical != 0 &&
+        mapPage(0x10000000u,
+                    (uint32_t)physical,
+                    PAGE_WRITABLE) == 0) {
+
+        volatile uint32_t *test =
+            (volatile uint32_t *)0x10000000u;
+
+        *test = 1234567890;
+        uint32_t value = *test;
+
+        vga_write("TEST: ");
+        vga_put_int(value);
+        vga_put_char('\n');
+
+        unMapPage(0x10000000u);
+        
+        vga_write("UNMAPPED PAGE\n");
+    }
     
     while (1) {}
 }
