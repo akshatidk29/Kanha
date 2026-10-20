@@ -21,7 +21,7 @@ static inline void invalidatePage(uint32_t virt){
 
 void pagingInitialize(void){
 
-    pageDirectoryPhysical = (uint32_t)pmm_allocate_frame();
+    pageDirectoryPhysical = (uint32_t)pmmAllocateFrame();
 
     if(pageDirectoryPhysical == 0)
         return;
@@ -32,7 +32,7 @@ void pagingInitialize(void){
         pageDirectory[entry] = 0;
 
     for(uint32_t table = 0; table < TABLE_COUNT; table++){
-        pageTablePhysical[table] = (uint32_t)pmm_allocate_frame();
+        pageTablePhysical[table] = (uint32_t)pmmAllocateFrame();
         
         if(pageTablePhysical[table] == 0)
             return;
@@ -70,7 +70,7 @@ int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
     uint32_t* table;
 
     if(!(dirEntry & PAGE_PRESENT)){
-        uint32_t tableFrame = (uint32_t)pmm_allocate_frame();
+        uint32_t tableFrame = (uint32_t)pmmAllocateFrame();
         if(tableFrame == 0)
             return -1;
 

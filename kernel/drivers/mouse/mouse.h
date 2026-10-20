@@ -1,8 +1,8 @@
 #ifndef KANHA_MOUSE_H
 #define KANHA_MOUSE_H
 
-void mouse_initialize(void);
+void mouseInitialize(void);
 
-void irq_handler_mouse(void);
+void irqHandlerMouse(void);
 
 #endif

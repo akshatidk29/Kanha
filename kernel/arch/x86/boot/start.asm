@@ -1,10 +1,10 @@
 BITS 32
 
 global _start
-global idt_load
-global enable_interrupts
+global idtLoad
+global enableInterrupts
 
-extern kernel_main
+extern kernelMain
 
 _start:
 
@@ -14,13 +14,13 @@ _start:
     push 0x7400
     
     ; Enter C
-    call kernel_main
+    call kernelMain
 
-idt_load:
+idtLoad:
     mov eax, [esp + 4]
     lidt [eax]
     ret 
 
-enable_interrupts:
+enableInterrupts:
     sti
     ret

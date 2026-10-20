@@ -75,9 +75,9 @@ static void setReservedRange(uint64_t base, uint64_t length){
 }
     
 
-void pmm_initialize(void* bootInfo){
+void pmmInitialize(void* bootInfo){
 
-    struct bootInfo* bi = (struct bootInfo*) bootInfo;
+    struct BootInfo* bi = (struct BootInfo*) bootInfo;
     
     for(int i = 0; i < BITMAP_SIZE; i++){
         usable_bitMap[i] = 0;
@@ -86,7 +86,7 @@ void pmm_initialize(void* bootInfo){
 
     freeFrameCount = 0;
 
-    struct e820Entry* entry = (struct e820Entry*)(uintptr_t)bi->e820Address;
+    struct E820Entry* entry = (struct E820Entry*)(uintptr_t)bi->e820Address;
     
     for(uint32_t i = 0; i < bi->e820Count; i++){
         if(entry[i].type == 1){
@@ -117,7 +117,7 @@ void pmm_initialize(void* bootInfo){
     }
 }
 
-uintptr_t pmm_allocate_frame(){
+uintptr_t pmmAllocateFrame(){
     for(uint32_t frame = 0; frame < PMM_FRAME_COUNT; frame++){
         if(isFrameBitSet(usable_bitMap, frame) && !isFrameBitSet(used_bitMap, frame)){
             setFrameBit(used_bitMap, frame);
@@ -128,7 +128,7 @@ uintptr_t pmm_allocate_frame(){
     return 0;
 }
 
-uint32_t pmm_deallocate_frame(uintptr_t phyAddress){
+uint32_t pmmDeallocateFrame(uintptr_t phyAddress){
 
     if (phyAddress == 0 ||
         phyAddress >= PMM_MEMORY_LIMIT ||
@@ -148,14 +148,14 @@ uint32_t pmm_deallocate_frame(uintptr_t phyAddress){
     return 0;
 }
 
-uint32_t pmm_free_frames_count(){
+uint32_t pmmFreeFramesCount(){
     return freeFrameCount;
 }
 
-uint32_t pmm_reserved_frames_count(){
+uint32_t pmmReservedFramesCount(){
     return PMM_FRAME_COUNT - freeFrameCount;
 }
 
-uint32_t pmm_total_frames_count(){
+uint32_t pmmTotalFramesCount(){
     return PMM_FRAME_COUNT;
 }

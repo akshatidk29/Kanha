@@ -5,14 +5,14 @@
 
 #define E820_MAX_ENTRIES 32
 
-struct e820Entry {
+struct E820Entry {
     uint64_t base;
     uint64_t length;
     uint32_t type;
     uint32_t attributes;
 } __attribute__((packed));
 
-struct bootInfo {
+struct BootInfo {
     uint32_t e820Count;
     uint32_t e820Address;
 };

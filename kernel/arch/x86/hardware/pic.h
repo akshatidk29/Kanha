@@ -17,10 +17,10 @@
 #define PIC2_OFFSET   0x28          // Maps to IRQ 8
 
 
-void pic_initialize(void);      
+void picInitialize(void);      
 
-void pic_set_mask(uint8_t irq);           // Blocks the IRQ
-void pic_clear_mask(uint8_t irq);         // Unblocks the IRQ
-void pic_send_eoi(uint8_t irq);           // Sends End Of Interrupt signal to the PIC
+void picSetMask(uint8_t irq);           // Blocks the IRQ
+void picClearMask(uint8_t irq);         // Unblocks the IRQ
+void picSendEOI(uint8_t irq);           // Sends End Of Interrupt signal to the PIC
 
 #endif

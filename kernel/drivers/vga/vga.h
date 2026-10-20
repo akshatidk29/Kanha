@@ -1,22 +1,22 @@
-#ifndef VGA_H
-#define VGA_H
+#ifndef KANHA_VGA_H
+#define KANHA_VGA_H
 
 #include <stdint.h>
 
-void vga_initialize();
+void vgaInitialize();
 
-void vga_set_cursor(uint8_t row, uint8_t column);
-void vga_cursor(void);
+void vgaSetCursor(uint8_t row, uint8_t column);
+void vgaCursor(void);
 
-void vga_put_char(char c);
-void vga_clear_char(void);
+void vgaPutChar(char c);
+void vgaClearChar(void);
 
-void vga_write(const char* c);
+void vgaWrite(const char* c);
 
-void vga_put_int(uint32_t n);
-void vga_put_int64(uint64_t n);
+void vgaPutInt(uint32_t n);
+void vgaPutInt64(uint64_t n);
 
-void vga_scroll(void);
+void vgaScroll(void);
 
 #endif
 

@@ -1,21 +1,21 @@
-#include "exception.h"
-#include "vga.h"
-#include "pic.h"
 #include "io.h"
+#include "pic.h"
+#include "vga.h"
+#include "exception.h"
 
-void exception_handler_divide_by_zero(void){
+void exceptionHandlerDivideByZero(void){
 
-    vga_write("ERROR: DIVIDE BY ZERO\n");
-    vga_write("CPU PANIC\n");
+    vgaWrite("ERROR: DIVIDE BY ZERO\n");
+    vgaWrite("CPU PANIC\n");
 
     __asm__ volatile("cli");
     __asm__ volatile("hlt");
 }   
 
-void exception_handler_page_fault(uint32_t faultAddress, uint32_t errorCode){
+void exceptionHandlerPageFault(uint32_t faultAddress, uint32_t errorCode){
 
-    vga_write("ERROR: PAGE FAULT\n");
-    vga_write("CPU PANIC\n");
+    vgaWrite("ERROR: PAGE FAULT\n");
+    vgaWrite("CPU PANIC\n");
 
     int pBit = (errorCode >> 0) & 1;
     int wBit = (errorCode >> 1) & 1;
@@ -23,39 +23,39 @@ void exception_handler_page_fault(uint32_t faultAddress, uint32_t errorCode){
     int sBit = (errorCode >> 3) & 1;
     int iBit = (errorCode >> 4) & 1;
 
-    vga_write("Page fault at 0x");
-    vga_put_int(faultAddress);
-    vga_write("\n");
+    vgaWrite("Page fault at 0x");
+    vgaPutInt(faultAddress);
+    vgaWrite("\n");
     
-    vga_write("Error code: 0x");
-    vga_put_int(errorCode);
-    vga_write("\n");
+    vgaWrite("Error code: 0x");
+    vgaPutInt(errorCode);
+    vgaWrite("\n");
 
-    vga_write("\nCause: ");
+    vgaWrite("\nCause: ");
     if (pBit)
-        vga_write("Protection violation\n");
+        vgaWrite("Protection violation\n");
     else
-        vga_write("Page not present\n");
+        vgaWrite("Page not present\n");
 
-    vga_write("Access: ");
+    vgaWrite("Access: ");
     if (wBit)
-        vga_write("Write\n");
+        vgaWrite("Write\n");
     else
-        vga_write("Read\n");
+        vgaWrite("Read\n");
 
-    vga_write("Privilege: ");
+    vgaWrite("Privilege: ");
     if (uBit)
-        vga_write("User mode\n");
+        vgaWrite("User mode\n");
     else
-        vga_write("Supervisor mode\n");
+        vgaWrite("Supervisor mode\n");
 
     if (sBit)
-        vga_write("Reserved paging bit violation\n");
+        vgaWrite("Reserved paging bit violation\n");
     else if (iBit)
-        vga_write("Instruction fetch\n");
+        vgaWrite("Instruction fetch\n");
 
-    vga_write("\n");
-    vga_write("CPU PANIC");
+    vgaWrite("\n");
+    vgaWrite("CPU PANIC");
 
     __asm__ volatile("cli");
     __asm__ volatile("hlt");

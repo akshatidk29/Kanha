@@ -3,7 +3,7 @@
 #include "pic.h"
 #include "keyboard.h"
 
-static const char code_to_ascii[128] = {
+static const char codeToAscii[128] = {
     [0x01] = 0,
     [0x02] = '1',
     [0x03] = '2',
@@ -140,17 +140,17 @@ static const char code_to_ascii[128] = {
 };
 
 
-void keyboard_initialize(void){
+void keyboardInitialize(void){
     return;
 }
 
-void irq_handler_keyboard(void){
-    uint8_t scanByte = inb(0x60);
+void irqHandlerKeyboard(void){
+    uint8_t scanByte = inB(0x60);
     
     if(!(scanByte & (0x80))){        
-        vga_put_char(code_to_ascii[scanByte]);
+        vgaPutChar(codeToAscii[scanByte]);
     }
     
-    pic_send_eoi(1);
+    picSendEOI(1);
     return;
 }

@@ -21,12 +21,12 @@ static uint32_t *physicalPointer(uint32_t phys){
 }
 
 
-int createAddressSpace(struct addressSpace *as){
+int createAddressSpace(struct AddressSpace *as){
 
     if(as == 0)
         return -1;
 
-    uint32_t frame = pmm_allocate_frame();
+    uint32_t frame = pmmAllocateFrame();
     if(frame == 0)
         return -1;
 
@@ -40,11 +40,11 @@ int createAddressSpace(struct addressSpace *as){
     return 0;
 }
 
-int destroyAddressSpace(struct addressSpace *as){
+int destroyAddressSpace(struct AddressSpace *as){
     return 0;
 }
 
-int switchAddressSpace(struct addressSpace *as){
+int switchAddressSpace(struct AddressSpace *as){
 
     if(as == 0 || as->pageDirectory == 0)
         return -1;
@@ -53,7 +53,7 @@ int switchAddressSpace(struct addressSpace *as){
     return 0;
 }
 
-int addressSpaceMapPage(struct addressSpace *as, uint32_t virt, uint32_t phys, uint32_t flags){
+int addressSpaceMapPage(struct AddressSpace *as, uint32_t virt, uint32_t phys, uint32_t flags){
     if(as == 0 || as->pageDirectory == 0)
         return -1;
     if(virt < ADRESS_SPACE_USER_START)
@@ -61,7 +61,7 @@ int addressSpaceMapPage(struct addressSpace *as, uint32_t virt, uint32_t phys, u
     return mapPage(as->pageDirectory, virt, phys, flags);
 }
 
-int addressSpaceUnMapPage(struct addressSpace *as, uint32_t virt){
+int addressSpaceUnMapPage(struct AddressSpace *as, uint32_t virt){
     if(as == 0 || as->pageDirectory == 0)
         return -1;
     if(virt < ADRESS_SPACE_USER_START)
@@ -69,7 +69,7 @@ int addressSpaceUnMapPage(struct addressSpace *as, uint32_t virt){
     return unMapPage(as->pageDirectory, virt);
 }
 
-int addressSpaceGetPhysicalAddress(struct addressSpace *as, uint32_t virt, uint32_t *phys){
+int addressSpaceGetPhysicalAddress(struct AddressSpace *as, uint32_t virt, uint32_t *phys){
     if(as == 0 || as->pageDirectory == 0 || phys == 0)
         return -1;
     return getPhysicalAddress(as->pageDirectory, virt, phys);

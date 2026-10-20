@@ -15,7 +15,7 @@
 static uint32_t row;
 static uint32_t column;
 
-void vga_initialize(void){
+void vgaInitialize(void){
     row = 0;
     column = 0;
 
@@ -25,26 +25,26 @@ void vga_initialize(void){
     }
 }
 
-void vga_put_char(char c){   
+void vgaPutChar(char c){   
 
     uint32_t pos = (row * VGA_WIDTH + column) * 2;
     
     if(c == '\n'){
 
-        vga_clear_char();
+        vgaClearChar();
         
         column = 0;
         row++;
 
         if(row >= VGA_HEIGHT){
-            vga_scroll();
+            vgaScroll();
         }
-        vga_cursor();
+        vgaCursor();
         return;
     }
 
     if(c == '\b'){
-        vga_clear_char();
+        vgaClearChar();
         if(column == 0){
             if(row != 0){
                 row--;
@@ -53,26 +53,26 @@ void vga_put_char(char c){
         }else{
             column--;
         }
-        vga_cursor();
+        vgaCursor();
         return;
     }
     
     if(c == '\t'){
 
         uint32_t k = 4;
-        vga_clear_char();
+        vgaClearChar();
         
         if(column + k >= VGA_WIDTH){
             column = 0;
             row++;
             if(row >= VGA_HEIGHT){
-                vga_scroll();
+                vgaScroll();
             }
-            vga_cursor();
+            vgaCursor();
             return;
         }
         column += k;
-        vga_cursor();
+        vgaCursor();
         return;
     }
 
@@ -86,41 +86,41 @@ void vga_put_char(char c){
         row++;
 
         if(row >= VGA_HEIGHT){
-            vga_scroll();
+            vgaScroll();
         }
     }
 
-    vga_cursor();
+    vgaCursor();
 }
 
-void vga_clear_char(void){
+void vgaClearChar(void){
     uint32_t pos = (row * VGA_WIDTH + column) * 2;
     VGA_MEMORY[pos] = ' ';
     VGA_MEMORY[pos + 1] = 0x07;
 }
 
 
-void vga_set_cursor(uint8_t row, uint8_t column) {
+void vgaSetCursor(uint8_t row, uint8_t column) {
     uint16_t pos = row * VGA_WIDTH + column;
 
     // Low byte
-    outb(VGA_CRTC_INDEX, VGA_CRTC_CURSOR_LOW);
-    outb(VGA_CRTC_DATA, (uint8_t)(pos & 0xFF));
+    outB(VGA_CRTC_INDEX, VGA_CRTC_CURSOR_LOW);
+    outB(VGA_CRTC_DATA, (uint8_t)(pos & 0xFF));
 
     // High byte
-    outb(VGA_CRTC_INDEX, VGA_CRTC_CURSOR_HIGH);
-    outb(VGA_CRTC_DATA, (uint8_t)((pos >> 8) & 0xFF));
+    outB(VGA_CRTC_INDEX, VGA_CRTC_CURSOR_HIGH);
+    outB(VGA_CRTC_DATA, (uint8_t)((pos >> 8) & 0xFF));
 }
 
-void vga_cursor(void){
-    vga_set_cursor(row, column);
+void vgaCursor(void){
+    vgaSetCursor(row, column);
 }
     
 
-void vga_put_int(uint32_t n){
+void vgaPutInt(uint32_t n){
 
     if(n == 0){
-        vga_put_char('0');
+        vgaPutChar('0');
         return;
     }
 
@@ -135,15 +135,15 @@ void vga_put_int(uint32_t n){
 
     i--;
     while(i >= 0){
-        vga_put_char(buffer[i]);
+        vgaPutChar(buffer[i]);
         i--;
     }
 }
 
-void vga_put_int64(uint64_t n){
+void vgaPutInt64(uint64_t n){
 
     if(n == 0){
-        vga_put_char('0');
+        vgaPutChar('0');
         return;
     }
 
@@ -158,19 +158,19 @@ void vga_put_int64(uint64_t n){
 
     i--;
     while(i >= 0){
-        vga_put_char(buffer[i]);
+        vgaPutChar(buffer[i]);
         i--;
     }
 }
 
-void vga_write(const char* c){
+void vgaWrite(const char* c){
     while(*c != '\0'){
-        vga_put_char(*c);
+        vgaPutChar(*c);
         c++;
     }
 }
 
-void vga_scroll(void){
+void vgaScroll(void){
     
     for(uint32_t i = 1; i < VGA_HEIGHT; i++){
         for(uint32_t j = 0; j < VGA_WIDTH; j++){

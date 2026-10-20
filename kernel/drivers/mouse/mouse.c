@@ -1,10 +1,9 @@
 #include "mouse.h"
 
-void mouse_initialize(void){
+void mouseInitialize(void){
     return;
 }
 
-
-void irq_handler_mouse(void){
+void irqHandlerMouse(void){
     return;
 }

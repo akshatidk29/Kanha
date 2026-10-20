@@ -10,7 +10,7 @@
 
 extern volatile uint32_t ticks;
 
-void pit_initialize(uint32_t freq);
-void irq_handler_timer(void);
+void pitInitialize(uint32_t freq);
+void irqHandlerTimer(void);
 
 #endif

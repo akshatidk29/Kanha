@@ -1,33 +1,33 @@
 #include "io.h"
 #include "pic.h"
 
-void pic_initialize(void)
+void picInitialize(void)
 {
-    uint8_t masterMask = inb(PIC1_DATA);
-    uint8_t slaveMask  = inb(PIC2_DATA);
+    uint8_t masterMask = inB(PIC1_DATA);
+    uint8_t slaveMask  = inB(PIC2_DATA);
 
     // ICW1: Start initialization sequence
-    outb(PIC1_COMMAND, 0x11);
-    outb(PIC2_COMMAND, 0x11);
+    outB(PIC1_COMMAND, 0x11);
+    outB(PIC2_COMMAND, 0x11);
 
     // ICW2: Set interrupt vector offsets
-    outb(PIC1_DATA, PIC1_OFFSET);
-    outb(PIC2_DATA, PIC2_OFFSET);
+    outB(PIC1_DATA, PIC1_OFFSET);
+    outB(PIC2_DATA, PIC2_OFFSET);
 
     // ICW3: Tell master/slave how they are connected.
-    outb(PIC1_DATA, 0x04);
-    outb(PIC2_DATA, 0x02);
+    outB(PIC1_DATA, 0x04);
+    outB(PIC2_DATA, 0x02);
 
     // ICW4: Operate in 8086 mode
-    outb(PIC1_DATA, 0x01);
-    outb(PIC2_DATA, 0x01);
+    outB(PIC1_DATA, 0x01);
+    outB(PIC2_DATA, 0x01);
 
     // Restore interrupt masks
-    outb(PIC1_DATA, masterMask);
-    outb(PIC2_DATA, slaveMask);
+    outB(PIC1_DATA, masterMask);
+    outB(PIC2_DATA, slaveMask);
 }
 
-void pic_set_mask(uint8_t irq){
+void picSetMask(uint8_t irq){
 
     int port;
     if(irq < 8){
@@ -37,12 +37,12 @@ void pic_set_mask(uint8_t irq){
         irq -= 8;
     }
 
-    uint8_t mask = inb(port);
+    uint8_t mask = inB(port);
     mask = mask | (1 << irq);
-    outb(port, mask);
+    outB(port, mask);
 }
 
-void pic_clear_mask(uint8_t irq){
+void picClearMask(uint8_t irq){
 
     uint8_t port;
     if(irq < 8){
@@ -52,15 +52,15 @@ void pic_clear_mask(uint8_t irq){
         irq -= 8;
     }
 
-    uint8_t mask = inb(port);
+    uint8_t mask = inB(port);
     mask = mask & ~(1 << irq);
-    outb(port, mask);
+    outB(port, mask);
 }
 
-void pic_send_eoi(uint8_t irq){
+void picSendEOI(uint8_t irq){
 
     if(irq >= 8){
-        outb(PIC2_COMMAND, 0x20);       // Send to Slave
+        outB(PIC2_COMMAND, 0x20);       // Send to Slave
     }
-    outb(PIC1_COMMAND, 0x20);           // Send to Master
+    outB(PIC1_COMMAND, 0x20);           // Send to Master
 }
