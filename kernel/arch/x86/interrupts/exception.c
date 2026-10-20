@@ -24,11 +24,11 @@ void exceptionHandlerPageFault(uint32_t faultAddress, uint32_t errorCode){
     int iBit = (errorCode >> 4) & 1;
 
     vgaWrite("Page fault at 0x");
-    vgaPutInt(faultAddress);
+    vgaPutUnsignedInt(faultAddress);
     vgaWrite("\n");
     
     vgaWrite("Error code: 0x");
-    vgaPutInt(errorCode);
+    vgaPutUnsignedInt(errorCode);
     vgaWrite("\n");
 
     vgaWrite("\nCause: ");

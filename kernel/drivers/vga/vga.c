@@ -117,13 +117,12 @@ void vgaCursor(void){
 }
     
 
-void vgaPutInt(uint32_t n){
+void vgaPutUnsignedInt(uint32_t n){
 
     if(n == 0){
         vgaPutChar('0');
         return;
     }
-
     int i = 0;
     char buffer[12];
 
@@ -140,7 +139,7 @@ void vgaPutInt(uint32_t n){
     }
 }
 
-void vgaPutInt64(uint64_t n){
+void vgaPutUnsignedInt64(uint64_t n){
 
     if(n == 0){
         vgaPutChar('0');
@@ -162,6 +161,62 @@ void vgaPutInt64(uint64_t n){
         i--;
     }
 }
+
+
+void vgaPutInt(int32_t n){
+
+    if(n == 0){
+        vgaPutChar('0');
+        return;
+    }
+    if(n < 0){
+        vgaPutChar('-');
+        n = -n;
+    }
+
+    int i = 0;
+    char buffer[12];
+
+    while(n != 0){
+        buffer[i] = (n % 10) + '0';
+        n /= 10;
+        i++;
+    }
+
+    i--;
+    while(i >= 0){
+        vgaPutChar(buffer[i]);
+        i--;
+    }
+}
+
+void vgaPutInt64(int64_t n){
+
+    if(n == 0){
+        vgaPutChar('0');
+        return;
+    }
+    if(n < 0){
+        vgaPutChar('-');
+        n = -n;
+    }
+
+    int i = 0;
+    char buffer[22];
+
+    while(n != 0){
+        buffer[i] = (n % 10) + '0';
+        n /= 10;
+        i++;
+    }
+
+    i--;
+    while(i >= 0){
+        vgaPutChar(buffer[i]);
+        i--;
+    }
+}
+
 
 void vgaWrite(const char* c){
     while(*c != '\0'){

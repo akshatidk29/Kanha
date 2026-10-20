@@ -13,8 +13,11 @@ void vgaClearChar(void);
 
 void vgaWrite(const char* c);
 
-void vgaPutInt(uint32_t n);
-void vgaPutInt64(uint64_t n);
+void vgaPutInt(int32_t n);
+void vgaPutInt64(int64_t n);
+
+void vgaPutUnsignedInt(uint32_t n);
+void vgaPutUnsignedInt64(uint64_t n);
 
 void vgaScroll(void);
 
