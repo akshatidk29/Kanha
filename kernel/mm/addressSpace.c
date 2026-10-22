@@ -12,11 +12,6 @@
 extern uint32_t pagingGetDirectory(void);
 
 static uint32_t *physicalPointer(uint32_t phys){
-    /*
-     * Valid for this initial design because the first
-     * 128 MiB is identity-mapped and all managed frames
-     * used here must lie within that range.
-     */
     return (uint32_t *)(uintptr_t)phys;
 }
 
@@ -36,6 +31,9 @@ int createAddressSpace(struct AddressSpace *as){
     for(size_t i = 0; i < KERNEL_PDE_COUNT; i++)
         pd[i] = kpd[i];
 
+    for(size_t i = KERNEL_PDE_COUNT; i < PAGE_ENTRIES; i++)
+        pd[i] = 0;
+    
     as->pageDirectory = frame;
     return 0;
 }

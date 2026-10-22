@@ -8,8 +8,10 @@ void exceptionHandlerDivideByZero(void){
     vgaWrite("ERROR: DIVIDE BY ZERO\n");
     vgaWrite("CPU PANIC\n");
 
-    __asm__ volatile("cli");
-    __asm__ volatile("hlt");
+    while(1){
+        __asm__ volatile("cli");
+        __asm__ volatile("hlt");
+    }
 }   
 
 void exceptionHandlerPageFault(uint32_t faultAddress, uint32_t errorCode){

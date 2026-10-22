@@ -26,9 +26,10 @@ isr14:
     mov eax, cr2                                ; Page fault linear address
     push dword[esp + 32]                        ; Error code
     push eax
-    call exceptionHandlerPageFault              ; Page Fault Exception with args error_code then fault_address
+    call exceptionHandlerPageFault              ; Page Fault Exception with args fault_address then error core
     add esp, 8
     popa
+    add esp, 4                                  ; Remove error code from stack
     iret
 
 isr32:

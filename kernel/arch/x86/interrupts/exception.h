@@ -4,6 +4,6 @@
 #include "vga.h"
 
 void exceptionHandlerDivideByZero(void);
-void exceptionHandlerPageFault(uint32_t errorCode, uint32_t faultAddress);
+void exceptionHandlerPageFault(uint32_t faultAddress, uint32_t errorCode);
 
 #endif

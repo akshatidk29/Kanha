@@ -37,7 +37,7 @@ e820NextEntry:
 
     jc e820Done                             ; If carry flag set, error
 
-    cmp ax, 0x534D4150                      ; Check if SMAP returned successfully
+    cmp eax, 0x534D4150                     ; Check if SMAP returned successfully
     jne diskErr
 
     inc ebp                                 ; Increment entry count
