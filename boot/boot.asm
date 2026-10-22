@@ -73,16 +73,19 @@ e820Done:
     cmp byte [es:0x0000], 0x4B              ; Check Magic Number 'K' 
     jne diskErr
 
-    cmp byte [es:0x0001], 0x4E              ; Check Magic Number 'N'
+    cmp byte [es:0x0001], 0x41              ; Check Magic Number 'A'
     jne diskErr
 
-    cmp byte [es:0x0002], 0x48              ; Check Magic Number 'H'
+    cmp byte [es:0x0002], 0x4E              ; Check Magic Number 'N'    
     jne diskErr
 
-    cmp byte [es:0x0003], 0x41              ; Check Magic Number 'A'
+    cmp byte [es:0x0003], 0x48              ; Check Magic Number 'H'
     jne diskErr
 
-    mov eax, [es:0x0004]                    ; Load Kernel Size into EAX
+    cmp byte [es:0x0004], 0x41              ; Check Magic Number 'A'
+    jne diskErr
+
+    mov eax, [es:0x0005]                    ; Load Kernel Size into EAX
     add eax, 511
     shr eax, 9                              ; EAX = (SIZE + 511) / 512
 

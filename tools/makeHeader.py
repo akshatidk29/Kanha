@@ -1,7 +1,7 @@
 import struct
 import sys
 
-MAGIC = b"KNHA"
+MAGIC = b"KANHA"
 HEADER_SIZE = 512
 
 kernelPath = sys.argv[1]
@@ -12,8 +12,8 @@ with open(kernelPath, "rb") as f:
 
 header = bytearray(HEADER_SIZE)
 
-header[0:4] = MAGIC
-struct.pack_into("<I", header, 4, kernelSize)
+header[0:5] = MAGIC
+struct.pack_into("<I", header, 5, kernelSize)
 
 with open(headerPath, "wb") as f:
     f.write(header)
