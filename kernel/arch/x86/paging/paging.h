@@ -9,7 +9,7 @@
 #define PAGE_WRITABLE   0x002u
 #define PAGE_USER       0x004u
 
-void pagingInitialize(void);
+uint32_t pagingInitialize(void);
 uint32_t pagingGetDirectory(void);
 void pagingEnable(uint32_t page_directory_physical);
 

@@ -12,6 +12,17 @@ volatile uint32_t ticks;
 
 extern void enableInterrupts(void);
 
+void kernelPanic(char* msg){
+    
+    vgaWrite(msg);
+    vgaWrite("\nCPU PANIC\n");
+    while(1){
+        __asm__ volatile("cli");
+        __asm__ volatile("hlt");
+    }
+}
+
+
 void printE820(struct BootInfo *bootInfo){
 
     struct E820Entry *entries =
@@ -37,10 +48,27 @@ void printE820(struct BootInfo *bootInfo){
     }
 }
 
-static void testPageFault(void){
-    volatile uint32_t *invalidAddress = (volatile uint32_t *)0x20000000;
-    uint32_t value = *invalidAddress;
-    (void)value;
+static void testPaging(void){
+
+    uint32_t before = pmmFreeFramesCount();
+    uintptr_t frame = pmmAllocateFrame();
+
+    if (frame == 0)
+        kernelPanic("PMM allocation failed");
+
+    if (frame % PMM_PAGE_SIZE != 0)
+        kernelPanic("PMM returned an unaligned frame");
+
+    if (pmmFreeFramesCount() != before - 1)
+        kernelPanic("PMM free count incorrect after allocation");
+
+    if (pmmDeallocateFrame(frame) != 0)
+        kernelPanic("PMM deallocation failed");
+
+    if (pmmFreeFramesCount() != before)
+        kernelPanic("PMM free count incorrect after deallocation");
+
+    vgaWrite("PMM Allocation Test Passed\n");
 }
 
 void kernelMain(struct BootInfo *bootInfo)
@@ -52,7 +80,10 @@ void kernelMain(struct BootInfo *bootInfo)
 
     pmmInitialize(bootInfo);
 
-    pagingInitialize();
+    if(pagingInitialize() != 0){
+        vgaWrite("Paging Initialization Failed\n");
+        kernelPanic(NULL);
+    }
 
     uint32_t pageDirectory = pagingGetDirectory();
     vgaWrite("PAGE DIRECTORY AT: ");
@@ -112,14 +143,14 @@ void kernelMain(struct BootInfo *bootInfo)
     vgaPutUnsignedInt(page_addr3);
     vgaPutChar('\n');
 
-    // testPageFault();
+    testPaging();
 
     struct AddressSpace kernelSpace;
     kernelSpace.pageDirectory = pagingGetDirectory();
 
     struct AddressSpace testSpace;
     if (createAddressSpace(&testSpace) != 0) {
-        vgaWrite("Address Space creation failed\n");
+        vgaWrite("Address Space Creation Failed\n");
         for(;;)asm volatile ("cli; hlt");
     }
     

@@ -19,12 +19,16 @@ static inline void invalidatePage(uint32_t virt){
 }
 
 
-void pagingInitialize(void){
+uint32_t pagingInitialize(void){
 
+    if (pageDirectoryPhysical != 0)
+        return 1;
+
+    uint32_t allocatedTables = 0;
     pageDirectoryPhysical = (uint32_t)pmmAllocateFrame();
 
     if(pageDirectoryPhysical == 0)
-        return;
+        goto failure;
 
     uint32_t *pageDirectory = (uint32_t *)(uintptr_t)pageDirectoryPhysical;
     
@@ -35,7 +39,9 @@ void pagingInitialize(void){
         pageTablePhysical[table] = (uint32_t)pmmAllocateFrame();
         
         if(pageTablePhysical[table] == 0)
-            return;
+            goto failure;
+
+        allocatedTables++;
 
         uint32_t* pageTable = (uint32_t* )(uintptr_t )(pageTablePhysical[table]);
         
@@ -46,6 +52,21 @@ void pagingInitialize(void){
 
         pageDirectory[table] = pageTablePhysical[table] | PAGE_PRESENT | PAGE_WRITABLE;
     }
+
+    return 0;
+
+failure:
+    for (uint32_t i = 0; i < allocatedTables; i++) {
+        pmmDeallocateFrame(pageTablePhysical[i]);
+        pageTablePhysical[i] = 0;
+    }
+
+    if (pageDirectoryPhysical != 0) {
+        pmmDeallocateFrame(pageDirectoryPhysical);
+        pageDirectoryPhysical = 0;
+    }
+
+    return 1;
 }
 
 uint32_t pagingGetDirectory(void){
