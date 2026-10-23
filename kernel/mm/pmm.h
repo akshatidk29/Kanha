@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 #define PMM_PAGE_SIZE 4096u
-#define PMM_MEMORY_LIMIT (128u * 4096u * 4096u)
+#define PMM_MEMORY_LIMIT (128u * 1024u * 1024u)
 #define PMM_FRAME_COUNT (PMM_MEMORY_LIMIT / PMM_PAGE_SIZE)
 
 void pmmInitialize(void* bootInfo);

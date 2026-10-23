@@ -33,15 +33,10 @@ static void setUsableRange(uint64_t base, uint64_t length){
     if(length == 0 || base >= PMM_MEMORY_LIMIT)
         return;
 
-    if(base > UINT64_MAX - length)
-        return;
+    uint64_t available = PMM_MEMORY_LIMIT - base;
+    uint64_t end = (length > available) ? PMM_MEMORY_LIMIT : base + length;
 
-    uint64_t end = base + length;
-
-    if(end > PMM_MEMORY_LIMIT)
-        end = PMM_MEMORY_LIMIT;
-
-    uint64_t firstFrame = (base + PMM_PAGE_SIZE - 1u) / PMM_PAGE_SIZE;
+    uint64_t firstFrame = (base / PMM_PAGE_SIZE) + (base % PMM_PAGE_SIZE != 0);
     uint64_t lastFrame = end / PMM_PAGE_SIZE;
 
     for(uint64_t frame = firstFrame; frame <= lastFrame; ++frame){
@@ -53,24 +48,19 @@ static void setUsableRange(uint64_t base, uint64_t length){
 }
 
 static void setReservedRange(uint64_t base, uint64_t length){
-    if(length == 0 || base >= PMM_MEMORY_LIMIT)
+    
+    if (length == 0 || base >= PMM_MEMORY_LIMIT)
         return;
 
-    if(base > UINT64_MAX - length)
-        return;
+    uint64_t available = PMM_MEMORY_LIMIT - base;
+    uint64_t end = (length > available) ? PMM_MEMORY_LIMIT : base + length;
 
-    uint64_t end = base + length;
+    uint64_t firstFrame = base / PMM_PAGE_SIZE;
 
-    if(end > PMM_MEMORY_LIMIT)
-        end = PMM_MEMORY_LIMIT;
+    uint64_t endFrame = (end / PMM_PAGE_SIZE) + (end % PMM_PAGE_SIZE != 0);
 
-    uint64_t firstFrame = (base + PMM_PAGE_SIZE - 1u) / PMM_PAGE_SIZE;
-    uint64_t lastFrame = end / PMM_PAGE_SIZE;
-
-    for(uint64_t frame = firstFrame; frame < lastFrame; ++frame){
-        if(!isFrameBitSet(used_bitMap, frame)){
-            setFrameBit(used_bitMap, frame);
-        }
+    for (uint64_t frame = firstFrame; frame < endFrame; ++frame) {
+        setFrameBit(used_bitMap, (uint32_t)frame);
     }
 }
     
