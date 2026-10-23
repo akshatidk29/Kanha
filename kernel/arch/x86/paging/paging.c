@@ -69,13 +69,21 @@ failure:
     return 1;
 }
 
-uint32_t pagingGetDirectory(void){
+uint32_t getKernelPageDirectory(void){
     return pageDirectoryPhysical;
 }
 
+uint32_t getCurrentPageDirectory(void){
+    uint32_t cr3;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+    return cr3 & ADDRESS_MASK;
+}
 
 int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
     
+    if(pd == 0)
+        return -1;
+
     if((virt & 0xFFFu) || (phys & 0xFFFu))
         return -1;
 
@@ -90,8 +98,11 @@ int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
     uint32_t dirEntry = dir[dirIdx];
     uint32_t* table;
 
+    int newTable = 0;
+    uint32_t tableFrame = 0;
+
     if(!(dirEntry & PAGE_PRESENT)){
-        uint32_t tableFrame = (uint32_t)pmmAllocateFrame();
+        tableFrame = (uint32_t)pmmAllocateFrame();
         if(tableFrame == 0)
             return -1;
 
@@ -99,23 +110,33 @@ int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
         for(uint32_t i = 0; i < ENTRIES_PER_TABLE; i++){
             table[i] = 0;
         }
-        uint32_t entryFlags = PAGE_PRESENT;
-        if(flags & PAGE_WRITABLE)
-            entryFlags |= PAGE_WRITABLE;
-        if(flags & PAGE_USER)
-            entryFlags |= PAGE_USER;
-        
-        dir[dirIdx] = (tableFrame & ADDRESS_MASK) | entryFlags;
+
+        newTable = 1;
     }else{
         table = (uint32_t*)(uintptr_t)(dirEntry & ADDRESS_MASK);
-        if(flags & PAGE_USER)
-            dir[dirIdx] |= PAGE_USER;
+        if (table[tableIdx] & PAGE_PRESENT)
+            return -1;
     }
 
-    if(table[tableIdx] & PAGE_PRESENT){
-        return -1;
-    }
+    uint32_t pteFlags = PAGE_PRESENT | flags;
     
+    if (newTable){
+        uint32_t pdeFlags = PAGE_PRESENT;
+
+        if (flags & PAGE_WRITABLE)
+            pdeFlags |= PAGE_WRITABLE;
+
+        if (flags & PAGE_USER)
+            pdeFlags |= PAGE_USER;
+
+        dir[dirIdx] = (tableFrame & ADDRESS_MASK) | pdeFlags;
+    }else {
+        if ((flags & PAGE_WRITABLE) && !(dirEntry & PAGE_WRITABLE))
+            return -1;
+        if ((flags & PAGE_USER) && !(dirEntry & PAGE_USER))
+            return -1;
+    }
+
     table[tableIdx] = (phys & ADDRESS_MASK) | flags | PAGE_PRESENT;
     invalidatePage(virt);
     return 0;
@@ -124,10 +145,11 @@ int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
 
 int unMapPage(uint32_t pd, uint32_t virt){
     
-    if(virt & 0xFFFu)
+    if(pd == 0 || (virt & 0xFFFu))
         return -1;
 
     uint32_t* dir = (uint32_t*)(uintptr_t)pd;
+
     uint32_t dirIdx = virt >> 22u;
     uint32_t tableIdx = (virt >> 12u) & 0x3FFu;
     uint32_t dirEntry = dir[dirIdx];
@@ -136,6 +158,9 @@ int unMapPage(uint32_t pd, uint32_t virt){
         return -1;
 
     uint32_t* table = (uint32_t*)(uintptr_t)(dirEntry & ADDRESS_MASK);
+   
+    if (!(table[tableIdx] & PAGE_PRESENT))
+        return -1;
     
     table[tableIdx] = 0;
     invalidatePage(virt);
@@ -144,7 +169,7 @@ int unMapPage(uint32_t pd, uint32_t virt){
 
 int getPhysicalAddress(uint32_t pd, uint32_t virt, uint32_t* phys){
 
-    if(virt & 0xFFFu)
+    if(pd == 0 || phys == 0)
         return -1;
     
     uint32_t* dir = (uint32_t*)(uintptr_t)pd;

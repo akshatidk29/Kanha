@@ -50,6 +50,19 @@ void printE820(struct BootInfo *bootInfo){
 
 static void testPaging(void){
 
+    vgaWrite("TOTAL FRAMES: ");
+    vgaPutUnsignedInt(pmmTotalFramesCount());
+    vgaPutChar('\n');
+
+    vgaWrite("FREE FRAMES: ");
+    vgaPutUnsignedInt(pmmFreeFramesCount());
+    vgaPutChar('\n');
+
+    vgaWrite("RESERVED FRAMES: ");
+    vgaPutUnsignedInt(pmmReservedFramesCount());
+    vgaPutChar('\n');
+    vgaPutChar('\n');
+
     uint32_t before = pmmFreeFramesCount();
     uintptr_t frame = pmmAllocateFrame();
 
@@ -85,13 +98,12 @@ void kernelMain(struct BootInfo *bootInfo)
         kernelPanic(NULL);
     }
 
-    uint32_t pageDirectory = pagingGetDirectory();
+    uint32_t pageDirectory = getKernelPageDirectory();
     vgaWrite("PAGE DIRECTORY AT: ");
     vgaPutUnsignedInt(pageDirectory);
     vgaPutChar('\n');
     
     pagingEnable(pageDirectory);
-
 
     ticks = 0;
 
@@ -105,80 +117,44 @@ void kernelMain(struct BootInfo *bootInfo)
     printE820(bootInfo);
     vgaPutChar('\n');
 
-    vgaWrite("TOTAL FRAMES: ");
-    vgaPutUnsignedInt(pmmTotalFramesCount());
-    vgaPutChar('\n');
-
-    vgaWrite("FREE FRAMES: ");
-    vgaPutUnsignedInt(pmmFreeFramesCount());
-    vgaPutChar('\n');
-
-    vgaWrite("RESERVED FRAMES: ");
-    vgaPutUnsignedInt(pmmReservedFramesCount());
-    vgaPutChar('\n');
-    vgaPutChar('\n');
-
-    uint32_t page_addr = pmmAllocateFrame();
-    vgaWrite("PAGE ALLOCATED AT: ");
-    vgaPutUnsignedInt(page_addr);
-    vgaPutChar('\n');
-
-    uint32_t page_addr2 = pmmAllocateFrame();
-    vgaWrite("PAGE ALLOCATED AT: ");
-    vgaPutUnsignedInt(page_addr2);
-    vgaPutChar('\n');
-
-    uint32_t ret = pmmDeallocateFrame(page_addr);
-    vgaWrite("PAGE DEALLOCATED: ");
-    vgaPutUnsignedInt(ret);
-    vgaPutChar('\n');    
-    
-    uint32_t ret2 = pmmDeallocateFrame(page_addr);
-    vgaWrite("PAGE DEALLOCATED: ");
-    vgaPutUnsignedInt(ret2);
-    vgaPutChar('\n');
-
-    uint32_t page_addr3 = pmmAllocateFrame();
-    vgaWrite("PAGE ALLOCATED AT: ");
-    vgaPutUnsignedInt(page_addr3);
-    vgaPutChar('\n');
 
     testPaging();
 
     struct AddressSpace kernelSpace;
-    kernelSpace.pageDirectory = pagingGetDirectory();
+    kernelSpace.pageDirectory = getKernelPageDirectory();
 
     struct AddressSpace testSpace;
-    if (createAddressSpace(&testSpace) != 0) {
-        vgaWrite("Address Space Creation Failed\n");
-        for(;;)asm volatile ("cli; hlt");
-    }
+    if (createAddressSpace(&testSpace) != 0) 
+        kernelPanic("Address Space Creation Failed\n");
+    
     
     uintptr_t frame1 = pmmAllocateFrame();
     uintptr_t frame2 = pmmAllocateFrame();
     volatile uint32_t *test = (volatile uint32_t *)0x10000000u;
 
     if (frame1 != 0 && addressSpaceMapPage(&kernelSpace, 0x10000000u, (uint32_t)frame1, PAGE_WRITABLE) == 0) {
+        vgaWrite("HI\n");
         *test = 123456789;
     }
-
+    
     if (frame2 != 0 && addressSpaceMapPage(&testSpace, 0x10000000u, (uint32_t)frame2, PAGE_WRITABLE) == 0) {
+        vgaWrite("HI\n");
     }
-
+    
     vgaWrite("Switching To New Address Space\n");
     if (switchAddressSpace(&testSpace) != 0) {
-        vgaWrite("Address Space switch failed\n");
-        for(;;)asm volatile ("cli; hlt");
+        kernelPanic("Address Space switch failed\n");
     }
+
     *test = 987654321;
     vgaWrite("NEW ADDRESS SPACE VALUE: ");
     vgaPutUnsignedInt(*test);
     vgaPutChar('\n');
     
     if(switchAddressSpace(&kernelSpace) != 0){
-        vgaWrite("Address Space switch failed\n");
-        for(;;)asm volatile ("cli; hlt");
+        kernelPanic("Address Space switch failed\n");
     }
+
     vgaWrite("Switched Back To Kernel Space\n");
     
     vgaWrite("KERNEL SPACE VALUE: ");

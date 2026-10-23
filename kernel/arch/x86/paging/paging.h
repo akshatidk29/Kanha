@@ -10,7 +10,9 @@
 #define PAGE_USER       0x004u
 
 uint32_t pagingInitialize(void);
-uint32_t pagingGetDirectory(void);
+uint32_t getKernelPageDirectory(void);
+uint32_t getCurrentPageDirectory(void);
+
 void pagingEnable(uint32_t page_directory_physical);
 
 
