@@ -7,6 +7,7 @@
 #include "pmm.h"
 #include "paging.h"
 #include "addressSpace.h"
+#include "memLayout.h"
 
 volatile uint32_t ticks;
 
@@ -14,7 +15,9 @@ extern void enableInterrupts(void);
 
 void kernelPanic(char* msg){
     
-    vgaWrite(msg);
+    if (msg)
+        vgaWrite(msg);
+    
     vgaWrite("\nCPU PANIC\n");
     while(1){
         __asm__ volatile("cli");
@@ -26,7 +29,7 @@ void kernelPanic(char* msg){
 void printE820(struct BootInfo *bootInfo){
 
     struct E820Entry *entries =
-        (struct E820Entry *)(uintptr_t)bootInfo->e820Address;
+        (struct E820Entry *)PHYS_TO_VIRT(bootInfo->e820Address);
 
     vgaWrite("E820 Memory Map\n");
 
@@ -86,7 +89,7 @@ static void testPaging(void){
 
 void kernelMain(struct BootInfo *bootInfo)
 {
-    vgaInitialize();           // Initialize VGA
+    vgaInitialize();           // Initialize VGA (at 0xC00B8000)
     idtInitialize();           // Initialize IDT
     picInitialize();           // Initialize PIC
     pitInitialize(1000);       // Initialize PIT with 1KHz frequency
@@ -107,26 +110,32 @@ void kernelMain(struct BootInfo *bootInfo)
     
     uint32_t physical = 0;
 
-    if (getPhysicalAddress(pageDirectory, 0xC0100000u, &physical) != 0) {
-        vgaWrite("Higher-half translation FAILED\n");
-    } else {
-        vgaWrite("Higher-half translation: ");
-        vgaPutUnsignedInt(physical);
-        vgaWrite("\n");
+    if (getPhysicalAddress(pageDirectory, 0xC0012000u, &physical) != 0) {
+        kernelPanic("Higher-half kernel mapping missing");
     }
 
+    if (physical != 0x12000u) {
+        kernelPanic("Higher-half translation incorrect");
+    }
+
+    vgaWrite("Higher-half mapping verified\n");
+
+    // Verify that lower 3GB is completely unmapped
+    if (getPhysicalAddress(pageDirectory, 0x00012000u, &physical) == 0) {
+        kernelPanic("Lower-half identity mapping is still present!");
+    }
+    vgaWrite("Lower 3GB verified cleared & unmapped\n");
+    
     ticks = 0;
 
     picClearMask(0);          // Unmask Timer
     picClearMask(1);          // Unmask Keyboard
-    //picClearMask(12);       // Unmask Mouse
     
     enableInterrupts();
 
     vgaPutChar('\n');
     printE820(bootInfo);
     vgaPutChar('\n');
-
 
     testPaging();
 
@@ -139,15 +148,21 @@ void kernelMain(struct BootInfo *bootInfo)
     
     uintptr_t frame1 = pmmAllocateFrame();
     uintptr_t frame2 = pmmAllocateFrame();
-    volatile uint32_t *test = (volatile uint32_t *)0x10000000u;
+    uintptr_t frame3 = pmmAllocateFrame();
+
+    volatile uint32_t *testUpper = (volatile uint32_t *)0x10000000u; // 256MB
+    volatile uint32_t *testLower = (volatile uint32_t *)0x00400000u; // 4MB 
 
     if (frame1 != 0 && addressSpaceMapPage(&kernelSpace, 0x10000000u, (uint32_t)frame1, (PAGE_WRITABLE | PAGE_USER)) == 0) {
-        vgaWrite("HI\n");
-        *test = 123456789;
+        *testUpper = 123456789;
     }
     
     if (frame2 != 0 && addressSpaceMapPage(&testSpace, 0x10000000u, (uint32_t)frame2, (PAGE_WRITABLE | PAGE_USER)) == 0) {
-        vgaWrite("HI\n");
+        //
+    }
+
+    if (frame3 != 0 && addressSpaceMapPage(&testSpace, 0x00400000u, (uint32_t)frame3, (PAGE_WRITABLE | PAGE_USER)) == 0) {
+        //
     }
     
     vgaWrite("Switching To New Address Space\n");
@@ -155,9 +170,15 @@ void kernelMain(struct BootInfo *bootInfo)
         kernelPanic("Address Space switch failed\n");
     }
 
-    *test = 987654321;
-    vgaWrite("NEW ADDRESS SPACE VALUE: ");
-    vgaPutUnsignedInt(*test);
+    *testUpper = 987654321;
+    *testLower = 555555555;
+
+    vgaWrite("NEW ADDRESS SPACE 256MB VALUE: ");
+    vgaPutUnsignedInt(*testUpper);
+    vgaPutChar('\n');
+
+    vgaWrite("NEW ADDRESS SPACE 4MB VALUE: ");
+    vgaPutUnsignedInt(*testLower);
     vgaPutChar('\n');
     
     if(switchAddressSpace(&kernelSpace) != 0){
@@ -166,10 +187,9 @@ void kernelMain(struct BootInfo *bootInfo)
 
     vgaWrite("Switched Back To Kernel Space\n");
     
-    vgaWrite("KERNEL SPACE VALUE: ");
-    vgaPutUnsignedInt(*test);
+    vgaWrite("KERNEL SPACE 256MB VALUE: ");
+    vgaPutUnsignedInt(*testUpper);
     vgaPutChar('\n');
-
 
     while (1) {}
 }

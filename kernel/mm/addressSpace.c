@@ -1,25 +1,18 @@
-#include "addressSpace.h"
 #include <stdint.h>
+#include "addressSpace.h"
 
 #include "pmm.h"
 #include "paging.h"
+#include "memLayout.h"
 
 #define PAGE_SIZE          4096u
 #define PAGE_ENTRIES       1024u
-#define KERNEL_PDE_COUNT   32u
 #define PAGE_ADDRESS_MASK  0xFFFFF000u
 
-
-#define KERNEL_PDE_START        768u
-#define HIGHER_HALF_TABLE_COUNT 32u
+#define KERNEL_PDE_START 768u
 
 extern uint32_t getKernelPageDirectory(void);
 extern uint32_t getCurrentPageDirectory(void);
-
-static uint32_t *physicalPointer(uint32_t phys){
-    return (uint32_t *)(uintptr_t)phys;
-}
-
 
 int createAddressSpace(struct AddressSpace *as){
 
@@ -30,20 +23,14 @@ int createAddressSpace(struct AddressSpace *as){
     if(frame == 0)
         return -1;
 
-    uint32_t *pd  = physicalPointer(frame);
-    uint32_t *kpd = physicalPointer(getKernelPageDirectory());
+    uint32_t *pd  = (uint32_t *)PHYS_TO_VIRT(frame);
+    uint32_t *kpd = (uint32_t *)PHYS_TO_VIRT(getKernelPageDirectory());
 
-    for(size_t i = 0; i < KERNEL_PDE_COUNT; i++)
-        pd[i] = kpd[i];
-
-    for(size_t i = KERNEL_PDE_COUNT; i < KERNEL_PDE_START; i++)
+    for(size_t i = 0; i < KERNEL_PDE_START; i++)
         pd[i] = 0;
 
-    for(size_t i = KERNEL_PDE_START; i < KERNEL_PDE_START + HIGHER_HALF_TABLE_COUNT; i++)
+    for(size_t i = KERNEL_PDE_START; i < PAGE_ENTRIES; i++)
         pd[i] = kpd[i];
-
-    for(size_t i = KERNEL_PDE_START + HIGHER_HALF_TABLE_COUNT; i < PAGE_ENTRIES; i++)
-        pd[i] = 0;
         
     as->pageDirectory = frame;
     return 0;
@@ -63,9 +50,10 @@ int destroyAddressSpace(struct AddressSpace *as){
     if(directory == currentDirectory)
         return -1;
 
-    uint32_t *pd = physicalPointer(directory);
+    uint32_t *pd = (uint32_t *)PHYS_TO_VIRT(directory);
 
-    for(uint32_t i = KERNEL_PDE_COUNT; i < PAGE_ENTRIES; i++){
+    // Free any user allocated page tables in PDE 0 to 767
+    for(uint32_t i = 0; i < KERNEL_PDE_START; i++){
         uint32_t pde = pd[i];
 
         if(!(pde & PAGE_PRESENT))
@@ -97,7 +85,7 @@ int switchAddressSpace(struct AddressSpace *as){
 int addressSpaceMapPage(struct AddressSpace *as, uint32_t virt, uint32_t phys, uint32_t flags){
     if(as == 0 || as->pageDirectory == 0)
         return -1;
-    if(virt < ADDRESS_SPACE_USER_START)
+    if(virt < ADDRESS_SPACE_USER_START || virt >= ADDRESS_SPACE_USER_END)
         return -1;
     if((flags & PAGE_USER) == 0)
         return -1;
@@ -109,7 +97,7 @@ int addressSpaceMapPage(struct AddressSpace *as, uint32_t virt, uint32_t phys, u
 int addressSpaceUnMapPage(struct AddressSpace *as, uint32_t virt){
     if(as == 0 || as->pageDirectory == 0)
         return -1;
-    if(virt < ADDRESS_SPACE_USER_START)
+    if(virt < ADDRESS_SPACE_USER_START || virt >= ADDRESS_SPACE_USER_END)
         return -1;
     return unMapPage(as->pageDirectory, virt);
 }
@@ -117,7 +105,7 @@ int addressSpaceUnMapPage(struct AddressSpace *as, uint32_t virt){
 int addressSpaceGetPhysicalAddress(struct AddressSpace *as, uint32_t virt, uint32_t *phys){
     if(as == 0 || as->pageDirectory == 0 || phys == 0)
         return -1;
-    if(virt < ADDRESS_SPACE_USER_START)
+    if(virt < ADDRESS_SPACE_USER_START || virt >= ADDRESS_SPACE_USER_END)
         return -1;
     return getPhysicalAddress(as->pageDirectory, virt, phys);
 }

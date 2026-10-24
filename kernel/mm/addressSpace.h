@@ -2,9 +2,11 @@
 #define KANHA_ADDRESS_SPACE_H
 
 #include <stdint.h>
+#include "memLayout.h"
 
-#define ADDRESS_SPACE_KERNEL_SIZE (128u * 1024u * 1024u)
-#define ADDRESS_SPACE_USER_START (ADDRESS_SPACE_KERNEL_SIZE)
+// User virtual memory spans from 0x00001000 to 0xC0000000 (3 GB)
+#define ADDRESS_SPACE_USER_START 0x00001000u
+#define ADDRESS_SPACE_USER_END   KERNEL_VIRTUAL_BASE
 
 struct AddressSpace{
     uint32_t pageDirectory;
