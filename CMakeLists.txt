@@ -8,9 +8,8 @@ project(Kanha
 )
 
 set(CMAKE_ASM_NASM_FLAGS "-f elf32")
-set(CMAKE_C_FLAGS "-m32 -ffreestanding -g -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables")
-set(CMAKE_EXE_LINKER_FLAGS "-nostdlib -Wl,-m,elf_i386 -Wl,-T,${CMAKE_SOURCE_DIR}/linker/linker.ld -Wl,--oformat=elf32-i386")
-
+set(CMAKE_C_FLAGS "-m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables")
+set(CMAKE_EXE_LINKER_FLAGS "-no-pie -nostdlib -Wl,-m,elf_i386 -Wl,-T,${CMAKE_SOURCE_DIR}/linker/linker.ld -Wl,--oformat=elf32-i386")
 
 add_executable(kernel.elf
     kernel/arch/x86/boot/start.asm
@@ -45,6 +44,7 @@ target_include_directories(kernel.elf
     kernel/arch/x86/paging
 )
 
+
 set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
 add_custom_command(TARGET kernel.elf POST_BUILD
@@ -58,6 +58,7 @@ add_custom_command(TARGET kernel.elf POST_BUILD
                     ${BUILD_DIR}/header.bin
     COMMENT "Generating header.bin"
 )
+
 
 add_custom_command(OUTPUT ${BUILD_DIR}/boot.bin
     COMMAND nasm -f bin ${CMAKE_SOURCE_DIR}/boot/boot.asm -o ${BUILD_DIR}/boot.bin
