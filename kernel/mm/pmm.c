@@ -39,7 +39,7 @@ static void setUsableRange(uint64_t base, uint64_t length){
     uint64_t firstFrame = (base / PMM_PAGE_SIZE) + (base % PMM_PAGE_SIZE != 0);
     uint64_t lastFrame = end / PMM_PAGE_SIZE;
 
-    for(uint64_t frame = firstFrame; frame <= lastFrame; ++frame){
+    for(uint64_t frame = firstFrame; frame < lastFrame; ++frame){
         if(!isFrameBitSet(usable_bitMap, frame)){
             setFrameBit(usable_bitMap, frame);
             unsetFrameBit(used_bitMap, frame);
@@ -76,7 +76,7 @@ void pmmInitialize(void* bootInfo){
 
     freeFrameCount = 0;
 
-    struct E820Entry* entry = (struct E820Entry*)(uintptr_t)bi->e820Address;
+    struct E820Entry* entry = (struct E820Entry*)PHYS_TO_VIRT(bi->e820Address);
     
     for(uint32_t i = 0; i < bi->e820Count; i++){
         if(entry[i].type == 1){

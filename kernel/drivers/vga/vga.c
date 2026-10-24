@@ -3,7 +3,7 @@
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
-#define VGA_MEMORY ((volatile unsigned char *)0xB8000)
+#define VGA_MEMORY ((volatile unsigned char *)0xC00B8000)
 
 
 #define VGA_CRTC_DATA 0x3D5             // VGA Cathode Ray Tube Controller for Blinking Cursor - Data Register

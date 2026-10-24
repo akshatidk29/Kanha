@@ -76,6 +76,27 @@ higherHalfEntry:
     mov esp, 0xC0090000
     cld
 
+    ; Load higher-half GDT so CPU doesn't access GDT in unmapped low memory (0x7da4)
+    lgdt [gdtDescriptor]
+    jmp 0x08:.reloadCS
+.reloadCS:
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov fs, ax
+    mov gs, ax
+
+    ; Unmap bootstrap identity mapping (PDE 0-31) now that we are in higher half
+    mov edi, (bootstrapPageDirectory + KERNEL_VIRTUAL_BASE)
+    xor eax, eax
+    mov ecx, 32
+    rep stosd
+
+    ; Flush TLB by reloading cr3
+    mov eax, cr3
+    mov cr3, eax
+
     ; Clear the higher-half kernel's BSS
     xor eax, eax
     mov edi, __bss_start
@@ -83,14 +104,53 @@ higherHalfEntry:
     sub ecx, edi
     rep stosb
 
-    ; Pass the boot information pointer to kernelMain
-    push dword 0x7400
+    ; Pass the boot information pointer to kernelMain in higher half
+    push dword (KERNEL_VIRTUAL_BASE + 0x7400)
     call kernelMain
 
 .hang:
     cli
     hlt
     jmp .hang
+
+section .data
+align 8
+gdtStart:
+    dq 0x0000000000000000           ; Null descriptor
+
+    dw 0xFFFF                       ; Kernel Code Segment
+    dw 0x0000
+    db 0x00
+    db 0x9A
+    db 0xCF
+    db 0x00
+    
+    dw 0xFFFF                       ; Kernel Data Segment
+    dw 0x0000
+    db 0x00
+    db 0x92
+    db 0xCF
+    db 0x00
+
+    dw 0xFFFF                        ; User Code Segment 
+    dw 0x0000
+    db 0x00
+    db 0xFA
+    db 0xCF
+    db 0x00
+
+    dw 0xFFFF                        ; User Data Segment 
+    dw 0x0000
+    db 0x00
+    db 0xF2
+    db 0xCF
+    db 0x00
+gdtEnd:
+
+gdtDescriptor:
+    dw gdtEnd - gdtStart - 1
+    dd gdtStart
+
 
 section .bootstrap.bss nobits align=4096
 
