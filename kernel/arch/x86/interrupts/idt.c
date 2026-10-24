@@ -5,6 +5,8 @@ static struct IDTPtr idtr;
 static struct IDTEntry idt[256];
 
 extern void isr0(void);
+extern void isr8(void);
+extern void isr13(void);
 extern void isr14(void);
 extern void isr32(void);
 extern void isr33(void);
@@ -27,6 +29,8 @@ void idtInitialize(void){
     idtr.base  = (uint32_t)idt;
     
     idtSetGate(0, (uint32_t)isr0, 0x08, 0x8E);
+    idtSetGate(8, (uint32_t)isr8, 0x08, 0x8E);
+    idtSetGate(13, (uint32_t)isr13, 0x08, 0x8E);
     idtSetGate(14, (uint32_t)isr14, 0x08, 0x8E);
     idtSetGate(32, (uint32_t)isr32, 0x08, 0x8E);  
     idtSetGate(33, (uint32_t)isr33, 0x08, 0x8E);
@@ -34,4 +38,3 @@ void idtInitialize(void){
     
     idtLoad(&idtr);
 }
-

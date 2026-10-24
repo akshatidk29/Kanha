@@ -3,6 +3,7 @@
 #include "vga.h"
 #include "paging.h"
 #include "exception.h"
+#include "memLayout.h"
 
 #define ADDRESS_MASK 0xFFFFF000u
 
@@ -15,7 +16,33 @@ void exceptionHandlerDivideByZero(void){
         __asm__ volatile("cli");
         __asm__ volatile("hlt");
     }
-}   
+}
+
+void exceptionHandlerDoubleFault(uint32_t errorCode){
+
+    vgaWrite("\nERROR: DOUBLE FAULT (#DF)\n");
+    vgaWrite("Error code: 0x");
+    vgaPutUnsignedInt(errorCode);
+    vgaWrite("\nCPU PANIC\n");
+
+    while(1){
+        __asm__ volatile("cli");
+        __asm__ volatile("hlt");
+    }
+}
+
+void exceptionHandlerGPF(uint32_t errorCode){
+
+    vgaWrite("\nERROR: GENERAL PROTECTION FAULT (#GP)\n");
+    vgaWrite("Error code: 0x");
+    vgaPutUnsignedInt(errorCode);
+    vgaWrite("\nCPU PANIC\n");
+
+    while(1){
+        __asm__ volatile("cli");
+        __asm__ volatile("hlt");
+    }
+}
 
 void inspectPageFault(uint32_t faultAddress){
     
@@ -28,7 +55,7 @@ void inspectPageFault(uint32_t faultAddress){
     uint32_t directoryIndex = faultAddress >> 22;
     uint32_t tableIndex = (faultAddress >> 12) & 0x3FFu;
 
-    uint32_t *directory = (uint32_t *)(uintptr_t)directoryPhysical;
+    uint32_t *directory = (uint32_t *)PHYS_TO_VIRT(directoryPhysical);
     uint32_t pde = directory[directoryIndex];
 
     vgaWrite("Active CR3: ");
@@ -46,7 +73,7 @@ void inspectPageFault(uint32_t faultAddress){
 
     uint32_t tablePhysical = pde & ADDRESS_MASK;
 
-    uint32_t *table = (uint32_t *)(uintptr_t)tablePhysical;
+    uint32_t *table = (uint32_t *)PHYS_TO_VIRT(tablePhysical);
 
     uint32_t pte = table[tableIndex];
 
