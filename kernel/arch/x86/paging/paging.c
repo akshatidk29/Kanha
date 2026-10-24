@@ -11,6 +11,14 @@
 #define IDENTITY_MAP_SIZE (128u * 1024u * 1024u)
 #define TABLE_COUNT (IDENTITY_MAP_SIZE / (4u * 1024u * 1024u))
 
+
+#define KERNEL_VIRTUAL_BASE       0xC0000000u
+#define KERNEL_PDE_START          768u
+#define HIGHER_HALF_TABLE_COUNT   TABLE_COUNT
+
+static uint32_t higherHalfTablePhysical[HIGHER_HALF_TABLE_COUNT];
+
+
 static uint32_t pageDirectoryPhysical;
 static uint32_t pageTablePhysical[TABLE_COUNT];
 
@@ -24,7 +32,9 @@ uint32_t pagingInitialize(void){
     if (pageDirectoryPhysical != 0)
         return 1;
 
-    uint32_t allocatedTables = 0;
+    uint32_t identityMapTableCount = 0;
+    uint32_t higherHalfTableCount = 0;
+
     pageDirectoryPhysical = (uint32_t)pmmAllocateFrame();
 
     if(pageDirectoryPhysical == 0)
@@ -41,7 +51,7 @@ uint32_t pagingInitialize(void){
         if(pageTablePhysical[table] == 0)
             goto failure;
 
-        allocatedTables++;
+        identityMapTableCount++;
 
         uint32_t* pageTable = (uint32_t* )(uintptr_t )(pageTablePhysical[table]);
         
@@ -53,12 +63,38 @@ uint32_t pagingInitialize(void){
         pageDirectory[table] = pageTablePhysical[table] | PAGE_PRESENT | PAGE_WRITABLE;
     }
 
+    // Initialize higher half aliases for kernel
+    for (uint32_t table = 0; table < HIGHER_HALF_TABLE_COUNT; table++) {
+
+        higherHalfTablePhysical[table] = (uint32_t)pmmAllocateFrame();
+
+        if (higherHalfTablePhysical[table] == 0)
+            goto failure;
+
+        higherHalfTableCount++;
+
+        uint32_t *pageTable = (uint32_t *)(uintptr_t)higherHalfTablePhysical[table];
+
+        for (uint32_t entry = 0; entry < ENTRIES_PER_TABLE; entry++) {
+            uint32_t physical = table * 0x400000u + entry * PAGE_SIZE;
+            pageTable[entry] = physical | PAGE_PRESENT | PAGE_WRITABLE;
+        }
+
+        uint32_t pdeIndex = KERNEL_PDE_START + table;
+        pageDirectory[pdeIndex] = higherHalfTablePhysical[table] | PAGE_PRESENT | PAGE_WRITABLE;
+    }
+
     return 0;
 
 failure:
-    for (uint32_t i = 0; i < allocatedTables; i++) {
+    for (uint32_t i = 0; i < identityMapTableCount; i++) {
         pmmDeallocateFrame(pageTablePhysical[i]);
         pageTablePhysical[i] = 0;
+    }
+
+    for (uint32_t i = 0; i < higherHalfTableCount; i++) {
+        pmmDeallocateFrame(higherHalfTablePhysical[i]);
+        higherHalfTablePhysical[i] = 0;
     }
 
     if (pageDirectoryPhysical != 0) {
@@ -114,12 +150,16 @@ int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
         newTable = 1;
     }else{
         table = (uint32_t*)(uintptr_t)(dirEntry & ADDRESS_MASK);
+        if ((flags & PAGE_WRITABLE) && !(dirEntry & PAGE_WRITABLE))
+            return -1;
+
+        if ((flags & PAGE_USER) && !(dirEntry & PAGE_USER))
+            return -1;
+
         if (table[tableIdx] & PAGE_PRESENT)
             return -1;
     }
 
-    uint32_t pteFlags = PAGE_PRESENT | flags;
-    
     if (newTable){
         uint32_t pdeFlags = PAGE_PRESENT;
 
@@ -130,11 +170,6 @@ int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
             pdeFlags |= PAGE_USER;
 
         dir[dirIdx] = (tableFrame & ADDRESS_MASK) | pdeFlags;
-    }else {
-        if ((flags & PAGE_WRITABLE) && !(dirEntry & PAGE_WRITABLE))
-            return -1;
-        if ((flags & PAGE_USER) && !(dirEntry & PAGE_USER))
-            return -1;
     }
 
     table[tableIdx] = (phys & ADDRESS_MASK) | flags | PAGE_PRESENT;

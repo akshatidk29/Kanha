@@ -104,6 +104,16 @@ void kernelMain(struct BootInfo *bootInfo)
     vgaPutChar('\n');
     
     pagingEnable(pageDirectory);
+    
+    uint32_t physical = 0;
+
+    if (getPhysicalAddress(pageDirectory, 0xC0100000u, &physical) != 0) {
+        vgaWrite("Higher-half translation FAILED\n");
+    } else {
+        vgaWrite("Higher-half translation: ");
+        vgaPutUnsignedInt(physical);
+        vgaWrite("\n");
+    }
 
     ticks = 0;
 
@@ -123,21 +133,20 @@ void kernelMain(struct BootInfo *bootInfo)
     struct AddressSpace kernelSpace;
     kernelSpace.pageDirectory = getKernelPageDirectory();
 
-    struct AddressSpace testSpace;
+    struct AddressSpace testSpace = {0};
     if (createAddressSpace(&testSpace) != 0) 
         kernelPanic("Address Space Creation Failed\n");
-    
     
     uintptr_t frame1 = pmmAllocateFrame();
     uintptr_t frame2 = pmmAllocateFrame();
     volatile uint32_t *test = (volatile uint32_t *)0x10000000u;
 
-    if (frame1 != 0 && addressSpaceMapPage(&kernelSpace, 0x10000000u, (uint32_t)frame1, PAGE_WRITABLE) == 0) {
+    if (frame1 != 0 && addressSpaceMapPage(&kernelSpace, 0x10000000u, (uint32_t)frame1, (PAGE_WRITABLE | PAGE_USER)) == 0) {
         vgaWrite("HI\n");
         *test = 123456789;
     }
     
-    if (frame2 != 0 && addressSpaceMapPage(&testSpace, 0x10000000u, (uint32_t)frame2, PAGE_WRITABLE) == 0) {
+    if (frame2 != 0 && addressSpaceMapPage(&testSpace, 0x10000000u, (uint32_t)frame2, (PAGE_WRITABLE | PAGE_USER)) == 0) {
         vgaWrite("HI\n");
     }
     
@@ -160,6 +169,7 @@ void kernelMain(struct BootInfo *bootInfo)
     vgaWrite("KERNEL SPACE VALUE: ");
     vgaPutUnsignedInt(*test);
     vgaPutChar('\n');
+
 
     while (1) {}
 }

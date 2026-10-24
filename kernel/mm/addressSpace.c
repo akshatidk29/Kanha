@@ -9,6 +9,10 @@
 #define KERNEL_PDE_COUNT   32u
 #define PAGE_ADDRESS_MASK  0xFFFFF000u
 
+
+#define KERNEL_PDE_START        768u
+#define HIGHER_HALF_TABLE_COUNT 32u
+
 extern uint32_t getKernelPageDirectory(void);
 extern uint32_t getCurrentPageDirectory(void);
 
@@ -19,7 +23,7 @@ static uint32_t *physicalPointer(uint32_t phys){
 
 int createAddressSpace(struct AddressSpace *as){
 
-    if(as == 0)
+    if(as == 0 || as->pageDirectory != 0)
         return -1;
 
     uint32_t frame = pmmAllocateFrame();
@@ -32,9 +36,15 @@ int createAddressSpace(struct AddressSpace *as){
     for(size_t i = 0; i < KERNEL_PDE_COUNT; i++)
         pd[i] = kpd[i];
 
-    for(size_t i = KERNEL_PDE_COUNT; i < PAGE_ENTRIES; i++)
+    for(size_t i = KERNEL_PDE_COUNT; i < KERNEL_PDE_START; i++)
         pd[i] = 0;
-    
+
+    for(size_t i = KERNEL_PDE_START; i < KERNEL_PDE_START + HIGHER_HALF_TABLE_COUNT; i++)
+        pd[i] = kpd[i];
+
+    for(size_t i = KERNEL_PDE_START + HIGHER_HALF_TABLE_COUNT; i < PAGE_ENTRIES; i++)
+        pd[i] = 0;
+        
     as->pageDirectory = frame;
     return 0;
 }
@@ -87,7 +97,11 @@ int switchAddressSpace(struct AddressSpace *as){
 int addressSpaceMapPage(struct AddressSpace *as, uint32_t virt, uint32_t phys, uint32_t flags){
     if(as == 0 || as->pageDirectory == 0)
         return -1;
-    if(virt < ADRESS_SPACE_USER_START)
+    if(virt < ADDRESS_SPACE_USER_START)
+        return -1;
+    if((flags & PAGE_USER) == 0)
+        return -1;
+    if((flags & ~(PAGE_WRITABLE | PAGE_USER)) != 0)
         return -1;
     return mapPage(as->pageDirectory, virt, phys, flags);
 }
@@ -95,7 +109,7 @@ int addressSpaceMapPage(struct AddressSpace *as, uint32_t virt, uint32_t phys, u
 int addressSpaceUnMapPage(struct AddressSpace *as, uint32_t virt){
     if(as == 0 || as->pageDirectory == 0)
         return -1;
-    if(virt < ADRESS_SPACE_USER_START)
+    if(virt < ADDRESS_SPACE_USER_START)
         return -1;
     return unMapPage(as->pageDirectory, virt);
 }
@@ -103,7 +117,7 @@ int addressSpaceUnMapPage(struct AddressSpace *as, uint32_t virt){
 int addressSpaceGetPhysicalAddress(struct AddressSpace *as, uint32_t virt, uint32_t *phys){
     if(as == 0 || as->pageDirectory == 0 || phys == 0)
         return -1;
-    if(virt < ADRESS_SPACE_USER_START)
+    if(virt < ADDRESS_SPACE_USER_START)
         return -1;
     return getPhysicalAddress(as->pageDirectory, virt, phys);
 }

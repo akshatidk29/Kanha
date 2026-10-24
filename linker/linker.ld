@@ -1,33 +1,72 @@
 ENTRY(_start)
 
+KERNEL_VIRTUAL_BASE = 0xC0000000;
+
+PHDRS
+{
+    bootstrap PT_LOAD FLAGS(7); /* R | W | X */
+    kernel    PT_LOAD FLAGS(7); /* R | W | X */
+}
+
 SECTIONS
 {
     . = 0x10000;
+
     kernelStart = .;
+    kernelPhysicalStart = .;
 
-    .text : ALIGN(16) {
+    .bootstrap.text ALIGN(16) :
+    {
+        KEEP(*(.bootstrap.text))
+    } :bootstrap
+
+    .bootstrap.data ALIGN(16) :
+    {
+        KEEP(*(.bootstrap.data))
+    } :bootstrap
+
+    .bootstrap.bss ALIGN(4096) (NOLOAD) :
+    {
+        KEEP(*(.bootstrap.bss))
+    } :bootstrap
+
+    . = ALIGN(4096);
+    kernelPhysicalLoadStart = .;
+
+    . += KERNEL_VIRTUAL_BASE;
+    kernelVirtualStart = .;
+
+    .text ALIGN(16) : AT(ADDR(.text) - KERNEL_VIRTUAL_BASE)
+    {
         *(.text*)
-    }
+    } :kernel
 
-    .rodata : ALIGN(16) {
+    .rodata ALIGN(16) : AT(ADDR(.rodata) - KERNEL_VIRTUAL_BASE)
+    {
         *(.rodata*)
-    }
+    } :kernel
 
-    .data : ALIGN(16) {
+    .data ALIGN(16) : AT(ADDR(.data) - KERNEL_VIRTUAL_BASE)
+    {
         *(.data*)
-    }
+    } :kernel
 
-    .bss : ALIGN(16) {
+    .bss ALIGN(16) (NOLOAD) : AT(ADDR(.bss) - KERNEL_VIRTUAL_BASE)
+    {
         __bss_start = .;
         *(COMMON)
         *(.bss*)
         __bss_end = .;
-    }
+    } :kernel
 
     . = ALIGN(4096);
-    kernelEnd = .;
+    kernelVirtualEnd = .;
 
-    /DISCARD/ : {
+    kernelPhysicalEnd = kernelVirtualEnd - KERNEL_VIRTUAL_BASE;
+    kernelEnd = kernelPhysicalEnd;
+
+    /DISCARD/ :
+    {
         *(.interp)
         *(.dynamic)
         *(.dynsym)

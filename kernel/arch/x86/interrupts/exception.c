@@ -1,7 +1,10 @@
 #include "io.h"
 #include "pic.h"
 #include "vga.h"
+#include "paging.h"
 #include "exception.h"
+
+#define ADDRESS_MASK 0xFFFFF000u
 
 void exceptionHandlerDivideByZero(void){
 
@@ -14,51 +17,101 @@ void exceptionHandlerDivideByZero(void){
     }
 }   
 
+void inspectPageFault(uint32_t faultAddress){
+    
+    uint32_t cr3;
+
+    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+
+    uint32_t directoryPhysical = cr3 & ADDRESS_MASK;
+
+    uint32_t directoryIndex = faultAddress >> 22;
+    uint32_t tableIndex = (faultAddress >> 12) & 0x3FFu;
+
+    uint32_t *directory = (uint32_t *)(uintptr_t)directoryPhysical;
+    uint32_t pde = directory[directoryIndex];
+
+    vgaWrite("Active CR3: ");
+    vgaPutUnsignedInt(directoryPhysical);
+    vgaWrite("\nPDE index: ");
+    vgaPutUnsignedInt(directoryIndex);
+    vgaWrite("\nPDE value: ");
+    vgaPutUnsignedInt(pde);
+    vgaWrite("\n");
+
+    if (!(pde & PAGE_PRESENT)) {
+        vgaWrite("PDE is NOT PRESENT; no page table to inspect.\n");
+        return;
+    }
+
+    uint32_t tablePhysical = pde & ADDRESS_MASK;
+
+    uint32_t *table = (uint32_t *)(uintptr_t)tablePhysical;
+
+    uint32_t pte = table[tableIndex];
+
+    vgaWrite("PTE index: ");
+    vgaPutUnsignedInt(tableIndex);
+    vgaWrite("\nPTE value: ");
+    vgaPutUnsignedInt(pte);
+    vgaWrite("\n");
+
+    vgaWrite("PDE permissions: ");
+    vgaWrite((pde & PAGE_WRITABLE) ? "Writable " : "Read-only ");
+    vgaWrite((pde & PAGE_USER) ? "User\n" : "Supervisor\n");
+
+    if (!(pte & PAGE_PRESENT)) {
+        vgaWrite("PTE is NOT PRESENT.\n");
+        return;
+    }
+
+    vgaWrite("PTE permissions: ");
+    vgaWrite((pte & PAGE_WRITABLE) ? "Writable " : "Read-only ");
+    vgaWrite((pte & PAGE_USER) ? "User\n" : "Supervisor\n");
+}
+
 void exceptionHandlerPageFault(uint32_t faultAddress, uint32_t errorCode){
 
-    vgaWrite("ERROR: PAGE FAULT\n");
-    vgaWrite("CPU PANIC\n");
+    int present = (errorCode >> 0) & 1;
+    int write   = (errorCode >> 1) & 1;
+    int user    = (errorCode >> 2) & 1;
+    int reserved = (errorCode >> 3) & 1;
+    int instruction = (errorCode >> 4) & 1;
 
-    int pBit = (errorCode >> 0) & 1;
-    int wBit = (errorCode >> 1) & 1;
-    int uBit = (errorCode >> 2) & 1;
-    int sBit = (errorCode >> 3) & 1;
-    int iBit = (errorCode >> 4) & 1;
+    vgaWrite("\nPAGE FAULT\n");
 
-    vgaWrite("Page fault at 0x");
+    vgaWrite("Fault address: 0x");
     vgaPutUnsignedInt(faultAddress);
     vgaWrite("\n");
-    
+
     vgaWrite("Error code: 0x");
     vgaPutUnsignedInt(errorCode);
     vgaWrite("\n");
 
-    vgaWrite("\nCause: ");
-    if (pBit)
-        vgaWrite("Protection violation\n");
-    else
-        vgaWrite("Page not present\n");
+    vgaWrite("Cause: ");
+    vgaWrite(present ? "Protection violation\n"
+                     : "Page not present\n");
 
     vgaWrite("Access: ");
-    if (wBit)
-        vgaWrite("Write\n");
-    else
-        vgaWrite("Read\n");
+    vgaWrite(write ? "Write\n" : "Read\n");
 
-    vgaWrite("Privilege: ");
-    if (uBit)
-        vgaWrite("User mode\n");
-    else
-        vgaWrite("Supervisor mode\n");
+    vgaWrite("Origin: ");
+    vgaWrite(user ? "User mode\n" : "Supervisor mode\n");
 
-    if (sBit)
-        vgaWrite("Reserved paging bit violation\n");
-    else if (iBit)
-        vgaWrite("Instruction fetch\n");
+    if (reserved)
+        vgaWrite("Detail: Reserved paging bit violation\n");
+
+    if (instruction)
+        vgaWrite("Detail: Instruction-fetch fault\n");
+    
+    vgaWrite("\nPAGE TABLE INSPECTION\n");
+    inspectPageFault(faultAddress);
 
     vgaWrite("\n");
     vgaWrite("CPU PANIC");
 
-    __asm__ volatile("cli");
-    __asm__ volatile("hlt");
+    while(1){
+        __asm__ volatile("cli");
+        __asm__ volatile("hlt");
+    }
 }

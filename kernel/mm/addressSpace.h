@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define ADDRESS_SPACE_KERNEL_SIZE (128u * 1024u * 1024u)
-#define ADRESS_SPACE_USER_START (ADDRESS_SPACE_KERNEL_SIZE)
+#define ADDRESS_SPACE_USER_START (ADDRESS_SPACE_KERNEL_SIZE)
 
 struct AddressSpace{
     uint32_t pageDirectory;
