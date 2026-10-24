@@ -54,55 +54,102 @@ e820Done:
     mov dword [0x7404], E820_BUFFER         ; Address of memory map entries
 
 
-; Read Sector 2 into 0x0800:0x0000
+
+; Check BIOS EDD support
+    mov ah, 0x41
+    mov bx, 0x55AA
+    mov dl, [bootDriveVariable]
+    int 0x13
+    jc diskErr
+
+    cmp bx, 0xAA55
+    jne diskErr
+
+    test cx, 0x0001
+    jz diskErr
+
+; Read sector 2 (LBA 1): KANHA header -> 0x8000
+    mov word [diskPacketCount], 1
+    mov word [diskPacketOffset], 0x0000
+    mov word [diskPacketSegment], 0x0800
+    mov dword [diskPacketLBA], 1
+    mov dword [diskPacketLBA + 4], 0
+
+    mov si, diskPacket
+    mov dl, [bootDriveVariable]
+    mov ah, 0x42
+    int 0x13
+    jc diskErr
+
+; Validate KANHA magic number
     mov ax, 0x0800
-    mov es, ax                              ; ES = 0x0800
+    mov es, ax
 
-    mov ah, 0x02                            ; Read Sectors
-    mov al, 1                               ; Number of Sectors to read
-    mov ch, 0                               ; Cylinder 0
-    mov cl, 2                               ; Starting from Sector 2 (Header)
-    mov dh, 0                               ; Head 0
-    mov dl, [bootDriveVariable]             ; Boot drive number
-    mov bx, 0x0000                          ; ES:BX = 0x0800:0x0000
-    int 0x13
-    jc diskErr
-
-; Read Header and check Magic Number and Kernel Size
-
-    cmp byte [es:0x0000], 0x4B              ; Check Magic Number 'K' 
+    cmp dword [es:0x0000], 0x484E414B
     jne diskErr
 
-    cmp byte [es:0x0001], 0x41              ; Check Magic Number 'A'
+    cmp byte [es:0x0004], 0x41
     jne diskErr
 
-    cmp byte [es:0x0002], 0x4E              ; Check Magic Number 'N'    
-    jne diskErr
+; Header bytes 5..8 contain the kernel byte size.
+    mov eax, [es:0x0005]
+    test eax, eax
+    jz diskErr
 
-    cmp byte [es:0x0003], 0x48              ; Check Magic Number 'H'
-    jne diskErr
-
-    cmp byte [es:0x0004], 0x41              ; Check Magic Number 'A'
-    jne diskErr
-
-    mov eax, [es:0x0005]                    ; Load Kernel Size into EAX
+; sectors = ceil(kernelSize / 512)
     add eax, 511
-    shr eax, 9                              ; EAX = (SIZE + 511) / 512
+    jc diskErr
+    shr eax, 9
+    mov [kernelSectorsRemaining], eax
 
-    mov [kernelSectors], eax
+; Prepare kernel reads: LBA 2 -> physical 0x10000
+; Read at most 32 sectors per BIOS request.
+    mov word [diskPacketCount], 32
+    mov word [diskPacketOffset], 0
+    mov word [diskPacketSegment], 0x1000
+    mov dword [diskPacketLBA], 2
+    mov dword [diskPacketLBA + 4], 0
 
-    mov ax, 0x1000                          
-    mov es, ax                              
-    mov bx, 0x0000                          ; ES:BX = 0x1000:0x0000
+readKernelLoop:
+    cmp dword [kernelSectorsRemaining], 0
+    je kernelReadDone
 
-    mov ah, 0x02                            ; Read Sectors
-    mov al, [kernelSectors]                 ; Number of Sectors to read
-    mov ch, 0                               ; Cylinder 0
-    mov cl, 3                               ; Starting from Sector 3
-    mov dh, 0                               ; Head 0
-    mov dl, [bootDriveVariable]             ; Boot drive number
+    ; Select min(remaining, 32).
+    mov eax, [kernelSectorsRemaining]
+    cmp eax, 32
+    jae .useFullChunk
+
+    mov [diskPacketCount], ax
+    jmp .readChunk
+
+.useFullChunk:
+    mov word [diskPacketCount], 32
+
+.readChunk:
+    ; Update remaining count before the BIOS call.
+    movzx eax, word [diskPacketCount]
+    sub [kernelSectorsRemaining], eax
+
+    ; BIOS EDD read: DS:SI points to the DAP.
+    mov si, diskPacket
+    mov dl, [bootDriveVariable]
+    mov ah, 0x42
     int 0x13
     jc diskErr
+
+    ; Advance LBA by the number of sectors read.
+    movzx eax, word [diskPacketCount]
+    add dword [diskPacketLBA], eax
+    adc dword [diskPacketLBA + 4], 0
+
+    ; Advance destination segment:
+    ; 512 bytes per sector = 32 paragraphs.
+    shl eax, 5
+    add word [diskPacketSegment], ax
+
+    jmp readKernelLoop
+
+kernelReadDone:
 
 
 ; Changing System from Real Mode to Protected Mode
@@ -157,8 +204,22 @@ BITS 16
 bootDriveVariable:
     db 0
 
-kernelSectors:
+kernelSectorsRemaining:
     dd 0
+
+; BIOS Enhanced Disk Drive Disk Address Packet (16 bytes)
+
+align 4
+diskPacket:
+    db 0x10, 0x00             ; Packet size, reserved
+diskPacketCount:
+    dw 0                      ; Number of sectors
+diskPacketOffset:
+    dw 0                      ; Destination offset
+diskPacketSegment:
+    dw 0                      ; Destination segment
+diskPacketLBA:
+    dq 0                      ; Starting LBA
 
 
 ; GDT
