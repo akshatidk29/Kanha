@@ -10,9 +10,9 @@
 
 void pmmInitialize(void* bootInfo);
 
-uintptr_t pmmAllocateFrame();
+uint32_t pmmAllocateFrame();
 
-uint32_t pmmDeallocateFrame(uintptr_t frame);
+int pmmDeallocateFrame(uint32_t frame);
 
 uint32_t pmmFreeFramesCount();
 uint32_t pmmReservedFramesCount();

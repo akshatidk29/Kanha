@@ -9,7 +9,7 @@
 #define PAGE_WRITABLE   0x002u
 #define PAGE_USER       0x004u
 
-uint32_t pagingInitialize(void);
+int pagingInitialize(void);
 uint32_t getKernelPageDirectory(void);
 uint32_t getCurrentPageDirectory(void);
 

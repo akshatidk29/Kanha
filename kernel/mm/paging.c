@@ -20,14 +20,14 @@ static inline void invalidatePage(uint32_t virt){
     asm volatile("invlpg (%0)" :: "r" ((uintptr_t)virt) : "memory");
 }
 
-uint32_t pagingInitialize(void){
+int pagingInitialize(void){
 
     if (pageDirectoryPhysical != 0)
-        return 1;
+        return -1;
 
     uint32_t higherHalfTableCount = 0;
 
-    pageDirectoryPhysical = (uint32_t)pmmAllocateFrame();
+    pageDirectoryPhysical = pmmAllocateFrame();
     if(pageDirectoryPhysical == 0)
         goto failure;
 
@@ -38,7 +38,7 @@ uint32_t pagingInitialize(void){
 
     for (uint32_t table = 0; table < HIGHER_HALF_TABLE_COUNT; table++) {
 
-        higherHalfTablePhysical[table] = (uint32_t)pmmAllocateFrame();
+        higherHalfTablePhysical[table] = pmmAllocateFrame();
         if (higherHalfTablePhysical[table] == 0)
             goto failure;
 
@@ -68,7 +68,7 @@ failure:
         pageDirectoryPhysical = 0;
     }
 
-    return 1;
+    return -1;
 }
 
 uint32_t getKernelPageDirectory(void){
@@ -101,7 +101,7 @@ int mapPage(uint32_t pd, uint32_t virt, uint32_t phys, uint32_t flags){
     uint32_t* table;
 
     if(!(dirEntry & PAGE_PRESENT)){
-        uint32_t tableFrame = (uint32_t)pmmAllocateFrame();
+        uint32_t tableFrame = pmmAllocateFrame();
         if(tableFrame == 0)
             return -1;
 

@@ -67,7 +67,7 @@ static void testPaging(void){
     vgaPutChar('\n');
 
     uint32_t before = pmmFreeFramesCount();
-    uintptr_t frame = pmmAllocateFrame();
+    uint32_t frame = pmmAllocateFrame();
 
     if (frame == 0)
         kernelPanic("PMM allocation failed");
@@ -146,22 +146,22 @@ void kernelMain(struct BootInfo *bootInfo)
     if (createAddressSpace(&testSpace) != 0) 
         kernelPanic("Address Space Creation Failed\n");
     
-    uintptr_t frame1 = pmmAllocateFrame();
-    uintptr_t frame2 = pmmAllocateFrame();
-    uintptr_t frame3 = pmmAllocateFrame();
+    uint32_t frame1 = pmmAllocateFrame();
+    uint32_t frame2 = pmmAllocateFrame();
+    uint32_t frame3 = pmmAllocateFrame();
 
     volatile uint32_t *testUpper = (volatile uint32_t *)0x10000000u; // 256MB
     volatile uint32_t *testLower = (volatile uint32_t *)0x00400000u; // 4MB 
 
-    if (frame1 != 0 && addressSpaceMapPage(&kernelSpace, 0x10000000u, (uint32_t)frame1, (PAGE_WRITABLE | PAGE_USER)) == 0) {
+    if (frame1 != 0 && addressSpaceMapPage(&kernelSpace, 0x10000000u, frame1, (PAGE_WRITABLE | PAGE_USER)) == 0) {
         *testUpper = 123456789;
     }
     
-    if (frame2 != 0 && addressSpaceMapPage(&testSpace, 0x10000000u, (uint32_t)frame2, (PAGE_WRITABLE | PAGE_USER)) == 0) {
+    if (frame2 != 0 && addressSpaceMapPage(&testSpace, 0x10000000u, frame2, (PAGE_WRITABLE | PAGE_USER)) == 0) {
         //
     }
 
-    if (frame3 != 0 && addressSpaceMapPage(&testSpace, 0x00400000u, (uint32_t)frame3, (PAGE_WRITABLE | PAGE_USER)) == 0) {
+    if (frame3 != 0 && addressSpaceMapPage(&testSpace, 0x00400000u, frame3, (PAGE_WRITABLE | PAGE_USER)) == 0) {
         //
     }
     

@@ -106,29 +106,29 @@ void pmmInitialize(void* bootInfo){
     }
 }
 
-uintptr_t pmmAllocateFrame(){
+uint32_t pmmAllocateFrame(){
     for(uint32_t frame = 0; frame < PMM_FRAME_COUNT; frame++){
         if(isFrameBitSet(usable_bitMap, frame) && !isFrameBitSet(used_bitMap, frame)){
             setFrameBit(used_bitMap, frame);
             freeFrameCount--;
-            return (uintptr_t)frame * PMM_PAGE_SIZE;
+            return frame * PMM_PAGE_SIZE;
         }
     }
     return 0;
 }
 
-uint32_t pmmDeallocateFrame(uintptr_t phyAddress){
+int pmmDeallocateFrame(uint32_t phyAddress){
 
     if (phyAddress == 0 ||
         phyAddress >= PMM_MEMORY_LIMIT ||
         phyAddress % PMM_PAGE_SIZE != 0) {
-        return 1;
+        return -1;
     }
 
     uint32_t frame = phyAddress / PMM_PAGE_SIZE;
 
     if(!isFrameBitSet(used_bitMap, frame) || !isFrameBitSet(usable_bitMap, frame)){
-        return 1;
+        return -1;
     }
 
     unsetFrameBit(used_bitMap, frame);
