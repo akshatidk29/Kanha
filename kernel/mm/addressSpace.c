@@ -52,7 +52,7 @@ int destroyAddressSpace(struct AddressSpace *as){
 
     uint32_t *pd = (uint32_t *)PHYS_TO_VIRT(directory);
 
-    // Free any user allocated page tables in PDE 0 to 767
+    // Free user page tables in PDE 0 to 767
     for(uint32_t i = 0; i < KERNEL_PDE_START; i++){
         uint32_t pde = pd[i];
 

@@ -80,7 +80,7 @@ add_custom_target(kanha.img ALL
 
 # Run 
 add_custom_target(run
-    COMMAND qemu-system-i386 -drive file=${BUILD_DIR}/kanha.img,format=raw -no-reboot
+    COMMAND qemu-system-i386 -m 512M -drive file=${BUILD_DIR}/kanha.img,format=raw -no-reboot
     DEPENDS kanha.img
     COMMENT "Running Kanha"
 )
@@ -88,7 +88,7 @@ add_custom_target(run
 # Debug
 add_custom_target(debug
     COMMAND qemu-system-i386
-            -m -4G
+            -m 512M
             -drive file=${BUILD_DIR}/kanha.img,format=raw
             -S
             -gdb tcp::1234

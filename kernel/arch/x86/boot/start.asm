@@ -20,6 +20,8 @@ extern __bss_end
 %define PHYS_BOOT_INFO       0x7400
 %define PHYS_BOOT_STACK_TOP  0x90000
 
+%define BOOTSTRAP_MAP_COUNT  128            ; 128 * 4MB = 512 MB
+
 section .bootstrap.text
 
 _start:
@@ -35,19 +37,19 @@ _start:
     mov ecx, 1024
     rep stosd
 
-    ; Map physical 0-128 MiB at virtual 0-128 MiB, also map the same physical range at 0xC0000000.
+    ; Map physical 0-512 MiB at virtual 0-512 MiB, also map the same physical range at 0xC0000000.
     mov edi, bootstrapPageDirectory
     xor ebx, ebx
-    mov ecx, 32
+    mov ecx, BOOTSTRAP_MAP_COUNT
 
 .mapPages:
     mov eax, ebx
     or eax, PAGE_FLAGS
 
-    ; Identity mapping: PDE 0-31
+    ; Identity mapping: PDE 0-127
     mov [edi], eax
 
-    ; Higher-half mapping: PDE 768-799
+    ; Higher-half mapping: PDE 768-895
     mov [edi + KERNEL_PDE_START * 4], eax
 
     add edi, 4
@@ -90,10 +92,10 @@ higherHalfEntry:
     mov fs, ax
     mov gs, ax
 
-    ; Unmap bootstrap identity mapping (PDE 0-31) now that we are in higher half
+    ; Unmap bootstrap identity mapping (PDE 0-127) now that we are in higher half
     mov edi, (bootstrapPageDirectory + KERNEL_VIRTUAL_BASE)
     xor eax, eax
-    mov ecx, 32
+    mov ecx, BOOTSTRAP_MAP_COUNT
     rep stosd
 
     ; Flush TLB by reloading cr3

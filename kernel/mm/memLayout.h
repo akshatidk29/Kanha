@@ -8,6 +8,10 @@
 #define KERNEL_SPACE_SIZE       0x40000000u 
 #define USER_SPACE_SIZE         KERNEL_VIRTUAL_BASE 
 
+#define KERNEL_DIRECT_MAP_SIZE  (512u * 1024u * 1024u) 
+#define KERNEL_DYNAMIC_START    (KERNEL_VIRTUAL_BASE + KERNEL_DIRECT_MAP_SIZE) 
+#define KERNEL_DYNAMIC_SIZE     (KERNEL_SPACE_SIZE - KERNEL_DIRECT_MAP_SIZE)   
+
 // Conversion
 #define PHYS_TO_VIRT(p)         ((void *)((uintptr_t)(p) + KERNEL_VIRTUAL_BASE))
 #define VIRT_TO_PHYS(v)         ((uintptr_t)(v) - KERNEL_VIRTUAL_BASE)
