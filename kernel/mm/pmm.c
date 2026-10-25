@@ -7,7 +7,6 @@
 
 #define BITS_PER_BYTE 8u
 #define BITMAP_SIZE   (PMM_FRAME_COUNT / BITS_PER_BYTE)
-#define LOW_MEMORY_END 0x00100000u
 
 static uint8_t usable_bitMap[BITMAP_SIZE];
 static uint8_t used_bitMap[BITMAP_SIZE];
@@ -90,15 +89,15 @@ void pmmInitialize(void* bootInfo){
         }
     }
 
-    setReservedRange(0, LOW_MEMORY_END);
+    setReservedRange(0, PHYS_LOW_MEMORY_END);
 
     uintptr_t kernelBeginning = (uintptr_t)kernelStart;
     uintptr_t kernelEnding = (uintptr_t)kernelEnd;
     uint64_t kernelSize = kernelEnding - kernelBeginning;
     setReservedRange((uint64_t)kernelBeginning, kernelSize);
 
-    // Stack
-    setReservedRange(0x80000u, 0x10000u);
+    // Boot stack
+    setReservedRange(PHYS_BOOT_STACK_BASE, PHYS_BOOT_STACK_SIZE);
 
     for(uint32_t frame = 0; frame < PMM_FRAME_COUNT; frame++){ 
         if(isFrameBitSet(usable_bitMap, frame) && !isFrameBitSet(used_bitMap, frame)){

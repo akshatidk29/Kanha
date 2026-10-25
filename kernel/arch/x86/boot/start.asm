@@ -17,6 +17,9 @@ extern __bss_end
 %define PAGE_SIZE_4MB        0x080
 %define PAGE_FLAGS           (PAGE_PRESENT | PAGE_WRITABLE | PAGE_SIZE_4MB)
 
+%define PHYS_BOOT_INFO       0x7400
+%define PHYS_BOOT_STACK_TOP  0x90000
+
 section .bootstrap.text
 
 _start:
@@ -24,7 +27,7 @@ _start:
     cld
 
     ; Initial stack
-    mov esp, 0x90000
+    mov esp, PHYS_BOOT_STACK_TOP
 
     ; Zero the bootstrap page directory.
     mov edi, bootstrapPageDirectory
@@ -73,7 +76,7 @@ section .text
 
 higherHalfEntry:
     ; Switch to the higher-half alias of the existing stack
-    mov esp, 0xC0090000
+    mov esp, (KERNEL_VIRTUAL_BASE + PHYS_BOOT_STACK_TOP)
     cld
 
     ; Load higher-half GDT so CPU doesn't access GDT in unmapped low memory (0x7da4)
@@ -105,7 +108,7 @@ higherHalfEntry:
     rep stosb
 
     ; Pass the boot information pointer to kernelMain in higher half
-    push dword (KERNEL_VIRTUAL_BASE + 0x7400)
+    push dword (KERNEL_VIRTUAL_BASE + PHYS_BOOT_INFO)
     call kernelMain
 
 .hang:

@@ -1,6 +1,7 @@
 ENTRY(_start)
 
-KERNEL_VIRTUAL_BASE = 0xC0000000;
+KERNEL_VIRTUAL_BASE  = 0xC0000000;
+KERNEL_PHYSICAL_BASE = 0x10000;
 
 PHDRS
 {
@@ -10,7 +11,7 @@ PHDRS
 
 SECTIONS
 {
-    . = 0x10000;
+    . = KERNEL_PHYSICAL_BASE;
 
     kernelStart = .;
     kernelPhysicalStart = .;

@@ -5,6 +5,11 @@ E820_BUFFER      equ 0x7000
 E820_ENTRY_SIZE  equ 24
 E820_MAX_ENTRIES equ 32
 
+BOOT_INFO_ADDR   equ 0x7400
+HEADER_SEGMENT   equ 0x0800             ; 0x0800:0000 = physical 0x8000
+KERNEL_SEGMENT   equ 0x1000             ; 0x1000:0000 = physical 0x10000
+KERNEL_ENTRY     equ 0x10000
+
 
 ; Initialize Segments
     xor ax, ax
@@ -50,8 +55,8 @@ e820NextEntry:
 
 
 e820Done:
-    mov dword [0x7400], ebp                 ; Number of memory map entries
-    mov dword [0x7404], E820_BUFFER         ; Address of memory map entries
+    mov dword [BOOT_INFO_ADDR], ebp                 ; Number of memory map entries
+    mov dword [BOOT_INFO_ADDR + 4], E820_BUFFER     ; Address of memory map entries
 
 
 
@@ -71,7 +76,7 @@ e820Done:
 ; Read sector 2 (LBA 1): KANHA header -> 0x8000
     mov word [diskPacketCount], 1
     mov word [diskPacketOffset], 0x0000
-    mov word [diskPacketSegment], 0x0800
+    mov word [diskPacketSegment], HEADER_SEGMENT
     mov dword [diskPacketLBA], 1
     mov dword [diskPacketLBA + 4], 0
 
@@ -102,11 +107,11 @@ e820Done:
     shr eax, 9
     mov [kernelSectorsRemaining], eax
 
-; Prepare kernel reads: LBA 2 -> physical 0x10000
+; Prepare kernel reads: LBA 2 = physical 0x10000
 ; Read at most 32 sectors per BIOS request.
     mov word [diskPacketCount], 32
     mov word [diskPacketOffset], 0
-    mov word [diskPacketSegment], 0x1000
+    mov word [diskPacketSegment], KERNEL_SEGMENT
     mov dword [diskPacketLBA], 2
     mov dword [diskPacketLBA + 4], 0
 
@@ -192,7 +197,7 @@ protectedMode:
     mov gs, ax
 
     ; Jump to Kernel at physical 0x10000
-    jmp 0x08:0x10000
+    jmp 0x08:KERNEL_ENTRY
 
 
 
