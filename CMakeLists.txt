@@ -24,7 +24,7 @@ add_executable(kernel.elf
     kernel/arch/x86/interrupts/idt.c
     kernel/arch/x86/interrupts/exception.c
     kernel/arch/x86/hardware/timer.c
-    kernel/arch/x86/paging/paging.c
+    kernel/mm/paging.c
     kernel/arch/x86/paging/paging.asm
     kernel/mm/addressSpace.c
 )
