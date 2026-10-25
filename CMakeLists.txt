@@ -27,6 +27,7 @@ add_executable(kernel.elf
     kernel/mm/paging.c
     kernel/arch/x86/paging/paging.asm
     kernel/mm/addressSpace.c
+    kernel/mm/heap.c
 )
 
 target_include_directories(kernel.elf 

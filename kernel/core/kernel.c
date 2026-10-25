@@ -8,6 +8,7 @@
 #include "paging.h"
 #include "addressSpace.h"
 #include "memLayout.h"
+#include "heap.h"
 
 volatile uint32_t ticks;
 
@@ -87,6 +88,44 @@ static void testPaging(void){
     vgaWrite("PMM Allocation Test Passed\n");
 }
 
+static void testHeap(void){
+    if (heapInitialize() != 0) {
+        kernelPanic("Heap initialization failed");
+    }
+    vgaWrite("Heap Initialized\n");
+
+    int *p1 = (int *)kMalloc(sizeof(int) * 10);
+    if (!p1) 
+        kernelPanic("kMalloc failed for p1\n");
+    p1[0] = 42;
+    p1[9] = 99;
+
+    char *p2 = (char *)kMalloc(8192);
+    if (!p2) 
+        kernelPanic("kMalloc failed\n");
+    p2[0] = 'A';
+    p2[8191] = 'Z';
+
+    if (kFree(p1) != 0) 
+        kernelPanic("kFree failed\n");
+    if (kFree(p2) != 0) 
+        kernelPanic("kFree failed\n");
+
+    char *p3 = (char *)kMalloc(10000);
+    if (!p3) 
+        kernelPanic("kMalloc failed\n");
+    p3[0] = 'X';
+    p3[9999] = 'Y';
+    if (kFree(p3) != 0) 
+        kernelPanic("kFree failed\n");
+
+    if ((void *)p3 != (void *)p1) {
+        kernelPanic("Coalescing failed\n");
+    }
+
+    vgaWrite("Heap Tests Passed!\n\n");
+}
+
 void kernelMain(struct BootInfo *bootInfo)
 {
     vgaInitialize();           // Initialize VGA (at 0xC00B8000)
@@ -138,6 +177,7 @@ void kernelMain(struct BootInfo *bootInfo)
     vgaPutChar('\n');
 
     testPaging();
+    testHeap();
 
     struct AddressSpace kernelSpace;
     kernelSpace.pageDirectory = getKernelPageDirectory();
