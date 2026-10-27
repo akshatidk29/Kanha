@@ -12,6 +12,7 @@
 #include "serial.h"
 #include "printf.h"
 #include "thread.h"
+#include "scheduler.h"
 
 volatile uint32_t ticks;
 
@@ -88,14 +89,10 @@ static void testPaging(void){
     if (pmmFreeFramesCount() != before)
         kernelPanic("PMM free count incorrect after deallocation");
 
-    vgaWrite("PMM Allocation Test Passed\n");
+    vgaWrite("PMM Tests Passed\n");
 }
 
 static void testHeap(void){
-    if (heapInitialize() != 0) {
-        kernelPanic("Heap initialization failed");
-    }
-    vgaWrite("Heap Initialized\n");
 
     int *p1 = (int *)kMalloc(sizeof(int) * 10);
     if (!p1) 
@@ -130,8 +127,7 @@ static void testHeap(void){
 }
 
 void* func1(){
-    vgaWrite("Akshat ");
-    vgaWrite("Mittal \n");
+    printf("Akshat Mittal from Thread1\n");
     return NULL;
 }
 
@@ -161,14 +157,17 @@ void kernelMain(struct BootInfo *bootInfo)
     picClearMask(1);          // Unmask Keyboard
     enableInterrupts();
     
-    // testPaging();
-    // testHeap();
+    testPaging();
+    testHeap();
     
-    threadInitialize();
+    schedulerInitialize();
+
     threadCreate((void(*)(void*))func1, NULL);
 
-    printf("Hello, My Name is Akshat. \nI am %d years old!\n", 0x14);
-
+    
     yield();
+    
+    printf("Akshat Mittal from Main Thread\n");
+
     while (1) {}
 }

@@ -23,10 +23,9 @@ struct Thread{
 
 
 
-void threadInitialize(void);
+struct Thread* threadInitialize(void);
 struct Thread* threadCreate(void(*func)(void*), void* arg);
 
-void yield(void);
 void threadExit(void);
 
 extern void switchContext(uint32_t **oldEsp, uint32_t *newEsp);

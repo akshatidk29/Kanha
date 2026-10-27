@@ -7,6 +7,9 @@ struct Heap heap;
 
 int heapInitialize(void){
 
+    if (heap.start != NULL)
+        return 0;
+
     uint32_t kpd = getKernelPageDirectory();
 
     for(int i = 0; i < HEAP_NUM_PAGES; i++){

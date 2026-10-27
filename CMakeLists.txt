@@ -32,6 +32,7 @@ add_executable(kernel.elf
     kernel/lib/printf.c
     kernel/task/thread.c
     kernel/task/switch.asm
+    kernel/scheduler/scheduler.c
 )
 
 target_include_directories(kernel.elf 
@@ -50,6 +51,7 @@ target_include_directories(kernel.elf
     kernel/drivers/serial
     kernel/lib
     kernel/task
+    kernel/scheduler
 )
 
 
