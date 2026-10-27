@@ -9,6 +9,8 @@
 #include "addressSpace.h"
 #include "memLayout.h"
 #include "heap.h"
+#include "serial.h"
+#include "printf.h"
 
 volatile uint32_t ticks;
 
@@ -132,7 +134,7 @@ void kernelMain(struct BootInfo *bootInfo)
     idtInitialize();           // Initialize IDT
     picInitialize();           // Initialize PIC
     pitInitialize(1000);       // Initialize PIT with 1KHz frequency
-
+    serialInitialize();
     pmmInitialize(bootInfo);
 
     if(pagingInitialize() != 0){
@@ -150,20 +152,20 @@ void kernelMain(struct BootInfo *bootInfo)
     uint32_t physical = 0;
 
     if (getPhysicalAddress(pageDirectory, 0xC0012000u, &physical) != 0) {
-        kernelPanic("Higher-half kernel mapping missing");
+        kernelPanic("Higher Half kernel mapping missing");
     }
 
     if (physical != 0x12000u) {
-        kernelPanic("Higher-half translation incorrect");
+        kernelPanic("Higher Half translation incorrect");
     }
 
-    vgaWrite("Higher-half mapping verified\n");
+    vgaWrite("Higher Half mapping verified\n");
 
     // Verify that lower 3GB is completely unmapped
     if (getPhysicalAddress(pageDirectory, 0x00012000u, &physical) == 0) {
-        kernelPanic("Lower-half identity mapping is still present!");
+        kernelPanic("Lower Half mapping is still present\n");
     }
-    vgaWrite("Lower 3GB verified cleared & unmapped\n");
+    vgaWrite("Lower 3GB verified\n");
     
     ticks = 0;
 
@@ -230,6 +232,9 @@ void kernelMain(struct BootInfo *bootInfo)
     vgaWrite("KERNEL SPACE 256MB VALUE: ");
     vgaPutUnsignedInt(*testUpper);
     vgaPutChar('\n');
+
+
+    printf("Hello, My Name is Akshat. \nI am %d years old!\n", 0x14);
 
     while (1) {}
 }

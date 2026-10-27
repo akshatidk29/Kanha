@@ -28,6 +28,8 @@ add_executable(kernel.elf
     kernel/arch/x86/paging/paging.asm
     kernel/mm/addressSpace.c
     kernel/mm/heap.c
+    kernel/drivers/serial/serial.c
+    kernel/lib/printf.c
 )
 
 target_include_directories(kernel.elf 
@@ -43,6 +45,8 @@ target_include_directories(kernel.elf
     kernel/mm
     kernel/arch/x86/boot
     kernel/arch/x86/paging
+    kernel/drivers/serial
+    kernel/lib
 )
 
 
@@ -81,7 +85,7 @@ add_custom_target(kanha.img ALL
 
 # Run 
 add_custom_target(run
-    COMMAND qemu-system-i386 -m 512M -drive file=${BUILD_DIR}/kanha.img,format=raw -no-reboot
+    COMMAND qemu-system-i386 -m 512M -drive file=${BUILD_DIR}/kanha.img,format=raw -no-reboot -serial stdio
     DEPENDS kanha.img
     COMMENT "Running Kanha"
 )
@@ -91,6 +95,7 @@ add_custom_target(debug
     COMMAND qemu-system-i386
             -m 512M
             -drive file=${BUILD_DIR}/kanha.img,format=raw
+            -serial stdio
             -S
             -gdb tcp::1234
     DEPENDS kanha.img
