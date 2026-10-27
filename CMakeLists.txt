@@ -35,6 +35,7 @@ add_executable(kernel.elf
     kernel/task/switch.asm
     kernel/scheduler/scheduler.c
     kernel/arch/x86/hardware/tss.c
+    kernel/user/switch.asm
 )
 
 target_include_directories(kernel.elf 

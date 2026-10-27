@@ -22,6 +22,7 @@ int globalCounter = 0;
 struct SpinLock lock;
 
 extern void enableInterrupts(void);
+extern void jumpToUserMode(uint32_t, uint32_t);
 
 void kernelPanic(char* msg){
     
@@ -140,8 +141,29 @@ void* func(int count){
     return NULL;
 }
 
-void kernelMain(struct BootInfo *bootInfo)
-{
+void testUserModeJump(){
+
+    uint32_t codeFrame = pmmAllocateFrame();
+    mapPage(getCurrentPageDirectory(), 0x00400000, codeFrame, PAGE_USER | PAGE_WRITABLE);
+
+    uint32_t stackFrame = pmmAllocateFrame();
+    mapPage(getCurrentPageDirectory(), 0x00800000, stackFrame, PAGE_USER | PAGE_WRITABLE);
+
+    uint8_t *code = (uint8_t *)PHYS_TO_VIRT(codeFrame);
+    code[0] = 0x40;       // inc eax
+    code[1] = 0xEB;       // jmp
+    code[2] = 0xFD;       // jump back to 'inc eax'
+
+    uint32_t *stack = (uint32_t *)PHYS_TO_VIRT(stackFrame + STACK_SIZE - 4);
+    *stack = 0x12345678;  
+
+    vgaWrite("Going to user mode\n");
+    jumpToUserMode(0x00400000, 0x00800000 + PAGE_SIZE - 16);
+    vgaWrite("Should never return!\n");
+}
+
+
+void kernelMain(struct BootInfo *bootInfo){
     ticks = 0;
 
     vgaInitialize();           // Initialize VGA (at 0xC00B8000)
@@ -187,5 +209,7 @@ void kernelMain(struct BootInfo *bootInfo)
     printf("Akshat Mittal from Main Thread\n");
     printf("Global Counter: %d\n", globalCounter);
 
-    while (1) {}
+    testUserModeJump();
+    vgaWrite("Done\n");
+    while (1);
 }

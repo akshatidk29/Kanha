@@ -20,8 +20,8 @@ struct Thread* threadInitialize(void) {
     mainThread->tid = nextTid++;
     mainThread->state = THREAD_RUNNING;
     mainThread->sleepTime = 0;
-    mainThread->kernelStack = NULL;
-    mainThread->stackPointer = (void*)(BOOT_STACK_TOP - STACK_SIZE);
+    mainThread->kernelStack = (void*)(BOOT_STACK_TOP - STACK_SIZE);
+    mainThread->stackPointer = NULL;
     mainThread->next = NULL;
 
     return mainThread;
