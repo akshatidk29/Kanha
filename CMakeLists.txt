@@ -30,6 +30,8 @@ add_executable(kernel.elf
     kernel/mm/heap.c
     kernel/drivers/serial/serial.c
     kernel/lib/printf.c
+    kernel/task/thread.c
+    kernel/task/switch.asm
 )
 
 target_include_directories(kernel.elf 
@@ -47,6 +49,7 @@ target_include_directories(kernel.elf
     kernel/arch/x86/paging
     kernel/drivers/serial
     kernel/lib
+    kernel/task
 )
 
 

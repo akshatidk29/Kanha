@@ -11,6 +11,7 @@
 #include "heap.h"
 #include "serial.h"
 #include "printf.h"
+#include "thread.h"
 
 volatile uint32_t ticks;
 
@@ -128,8 +129,16 @@ static void testHeap(void){
     vgaWrite("Heap Tests Passed!\n\n");
 }
 
+void* func1(){
+    vgaWrite("Akshat ");
+    vgaWrite("Mittal \n");
+    return NULL;
+}
+
 void kernelMain(struct BootInfo *bootInfo)
 {
+    ticks = 0;
+
     vgaInitialize();           // Initialize VGA (at 0xC00B8000)
     idtInitialize();           // Initialize IDT
     picInitialize();           // Initialize PIC
@@ -141,100 +150,25 @@ void kernelMain(struct BootInfo *bootInfo)
         vgaWrite("Paging Initialization Failed\n");
         kernelPanic(NULL);
     }
+    pagingEnable(getKernelPageDirectory());
 
-    uint32_t pageDirectory = getKernelPageDirectory();
-    vgaWrite("PAGE DIRECTORY AT: ");
-    vgaPutUnsignedInt(pageDirectory);
-    vgaPutChar('\n');
-    
-    pagingEnable(pageDirectory);
-    
-    uint32_t physical = 0;
-
-    if (getPhysicalAddress(pageDirectory, 0xC0012000u, &physical) != 0) {
-        kernelPanic("Higher Half kernel mapping missing");
+    if(heapInitialize() != 0){
+        vgaWrite("Heap Initialization Failed\n");
+        kernelPanic(NULL);
     }
-
-    if (physical != 0x12000u) {
-        kernelPanic("Higher Half translation incorrect");
-    }
-
-    vgaWrite("Higher Half mapping verified\n");
-
-    // Verify that lower 3GB is completely unmapped
-    if (getPhysicalAddress(pageDirectory, 0x00012000u, &physical) == 0) {
-        kernelPanic("Lower Half mapping is still present\n");
-    }
-    vgaWrite("Lower 3GB verified\n");
-    
-    ticks = 0;
 
     picClearMask(0);          // Unmask Timer
     picClearMask(1);          // Unmask Keyboard
-    
     enableInterrupts();
-
-    vgaPutChar('\n');
-    printE820(bootInfo);
-    vgaPutChar('\n');
-
-    testPaging();
-    testHeap();
-
-    struct AddressSpace kernelSpace;
-    kernelSpace.pageDirectory = getKernelPageDirectory();
-
-    struct AddressSpace testSpace = {0};
-    if (createAddressSpace(&testSpace) != 0) 
-        kernelPanic("Address Space Creation Failed\n");
     
-    uint32_t frame1 = pmmAllocateFrame();
-    uint32_t frame2 = pmmAllocateFrame();
-    uint32_t frame3 = pmmAllocateFrame();
-
-    volatile uint32_t *testUpper = (volatile uint32_t *)0x10000000u; // 256MB
-    volatile uint32_t *testLower = (volatile uint32_t *)0x00400000u; // 4MB 
-
-    if (frame1 != 0 && addressSpaceMapPage(&kernelSpace, 0x10000000u, frame1, (PAGE_WRITABLE | PAGE_USER)) == 0) {
-        *testUpper = 123456789;
-    }
+    // testPaging();
+    // testHeap();
     
-    if (frame2 != 0 && addressSpaceMapPage(&testSpace, 0x10000000u, frame2, (PAGE_WRITABLE | PAGE_USER)) == 0) {
-        //
-    }
-
-    if (frame3 != 0 && addressSpaceMapPage(&testSpace, 0x00400000u, frame3, (PAGE_WRITABLE | PAGE_USER)) == 0) {
-        //
-    }
-    
-    vgaWrite("Switching To New Address Space\n");
-    if (switchAddressSpace(&testSpace) != 0) {
-        kernelPanic("Address Space switch failed\n");
-    }
-
-    *testUpper = 987654321;
-    *testLower = 555555555;
-
-    vgaWrite("NEW ADDRESS SPACE 256MB VALUE: ");
-    vgaPutUnsignedInt(*testUpper);
-    vgaPutChar('\n');
-
-    vgaWrite("NEW ADDRESS SPACE 4MB VALUE: ");
-    vgaPutUnsignedInt(*testLower);
-    vgaPutChar('\n');
-    
-    if(switchAddressSpace(&kernelSpace) != 0){
-        kernelPanic("Address Space switch failed\n");
-    }
-
-    vgaWrite("Switched Back To Kernel Space\n");
-    
-    vgaWrite("KERNEL SPACE 256MB VALUE: ");
-    vgaPutUnsignedInt(*testUpper);
-    vgaPutChar('\n');
-
+    threadInitialize();
+    threadCreate((void(*)(void*))func1, NULL);
 
     printf("Hello, My Name is Akshat. \nI am %d years old!\n", 0x14);
 
+    yield();
     while (1) {}
 }
