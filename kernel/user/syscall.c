@@ -3,6 +3,7 @@
 #include "vga.h"
 #include "printf.h"
 #include "thread.h"
+#include "process.h"
 #include "scheduler.h"
 
 static int sysWrite(int fd, const char *buf, uint32_t len) {
@@ -29,10 +30,17 @@ void syscallHandler(struct SyscallFrame *frame) {
         
         case SYS_EXIT: {
             int status = (int)frame->ebx;
-            printf("Process %d exited with code %d\n", scheduledThread()->tid, status);
-            threadExit();
+            struct Process *proc = currentProcess();
+            if (proc) {
+                printf("Process %d exited with code %d\n", proc->pid, status);
+                processExit(status);
+            } else {
+                printf("Thread %d exited with code %d\n", scheduledThread()->tid, status);
+                threadExit();
+            }
             break;
         }
+
 
         case SYS_WRITE: {
             int fd = (int)frame->ebx;

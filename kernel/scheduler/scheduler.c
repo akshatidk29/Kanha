@@ -2,6 +2,8 @@
 
 #include "tss.h"
 #include "thread.h"
+#include "paging.h"
+#include "process.h"
 #include "scheduler.h"
 
 static struct Thread *currentThread = NULL;
@@ -66,25 +68,34 @@ static struct Thread *readyThreadsPop(void) {
 void yield(void) {
 
     struct Thread *next = readyThreadsPop();
-
     if (!next) 
         return;
 
     struct Thread *prev = currentThread;
     if (prev->state == THREAD_RUNNING) {
         readyThreadsPush(prev);
-    }else if(prev->state == THREAD_SLEEPING){
+    } else if (prev->state == THREAD_SLEEPING) {
         sleepThreadsPush(prev);
     }
 
     next->state = THREAD_RUNNING;
     currentThread = next;
 
-    if(next->kernelStack){
+    if (next->kernelStack) {
         tssSetKernelStack((uint32_t)(next->kernelStack) + STACK_SIZE);
     }
+
+    // Switch AddressSpace (CR3)
+    if (next->process && (!prev->process || next->process != prev->process)) {
+        switchAddressSpace(&next->process->addressSpace);
+    } else if (!next->process && prev->process) {
+        // Switching from a user process back to a pure kernel thread
+        pagingEnable(getKernelPageDirectory());
+    }
+
     switchContext(&prev->stackPointer, next->stackPointer);
 }
+
 
 void schedulerTimer(void){
 

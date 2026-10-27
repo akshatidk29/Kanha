@@ -24,6 +24,7 @@ struct Thread* threadInitialize(void) {
     mainThread->stackPointer = NULL;
     mainThread->next = NULL;
 
+    mainThread->process = NULL;
     return mainThread;
 }
 
@@ -42,7 +43,8 @@ struct Thread *threadCreate(void (*func)(void *), void *arg) {
     thread->tid = nextTid++;
     thread->sleepTime = 0;
     thread->kernelStack = stack;
-
+    thread->process = NULL;
+    
     uint32_t *top = (uint32_t *)((uint8_t *)stack + STACK_SIZE);
 
     *(--top) = (uint32_t)arg;               

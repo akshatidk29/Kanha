@@ -37,6 +37,7 @@ add_executable(kernel.elf
     kernel/arch/x86/hardware/tss.c
     kernel/user/switch.asm
     kernel/user/syscall.c
+    kernel/task/process.c
 )
 
 target_include_directories(kernel.elf 

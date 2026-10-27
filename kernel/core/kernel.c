@@ -15,6 +15,8 @@
 #include "tss.h"
 #include "thread.h"
 #include "scheduler.h"
+#include "process.h"
+
 
 volatile uint32_t ticks;
 
@@ -141,47 +143,6 @@ void* func(int count){
     return NULL;
 }
 
-void testUserModeJump(void) {
-
-    uint32_t codeFrame = pmmAllocateFrame();
-    mapPage(getCurrentPageDirectory(), 0x00400000, codeFrame, PAGE_USER | PAGE_WRITABLE);
-
-    uint32_t stackFrame = pmmAllocateFrame();
-    mapPage(getCurrentPageDirectory(), 0x00800000, stackFrame, PAGE_USER | PAGE_WRITABLE);
-
-    uint8_t *code = (uint8_t *)PHYS_TO_VIRT(codeFrame);
-
-    // 1. Machine instructions for SYS_WRITE and SYS_EXIT
-    uint8_t userProgram[] = {
-        0xB8, 0x02, 0x00, 0x00, 0x00,
-        0xBB, 0x01, 0x00, 0x00, 0x00,
-        0xB9, 0x40, 0x00, 0x40, 0x00,
-        0xBA, 0x17, 0x00, 0x00, 0x00,
-        0xCD, 0x80,
-
-        0xB8, 0x01, 0x00, 0x00, 0x00,
-        0xBB, 0x2A, 0x00, 0x00, 0x00,
-        0xCD, 0x80,
-
-        0xEB, 0xFE
-    };
-
-    for (uint32_t i = 0; i < sizeof(userProgram); i++) {
-        code[i] = userProgram[i];
-    }
-
-    const char *msg = "Hello from User Mode!\n";
-    for (uint32_t i = 0; msg[i] != '\0'; i++) {
-        code[0x40 + i] = (uint8_t)msg[i];
-    }
-
-    printf("Jumping to User Mode\n");
-    jumpToUserMode(0x00400000, 0x00800000 + PAGE_SIZE - 16);
-    printf("Should never return!\n");
-}
-
-
-
 void kernelMain(struct BootInfo *bootInfo){
     ticks = 0;
 
@@ -228,7 +189,36 @@ void kernelMain(struct BootInfo *bootInfo){
     printf("Akshat Mittal from Main Thread\n");
     printf("Global Counter: %d\n", globalCounter);
 
-    testUserModeJump();
+
+    uint8_t userBinary[128];
+    uint8_t userProgram[] = {
+        0xB8, 0x02, 0x00, 0x00, 0x00, // mov eax, 2 (SYS_WRITE)
+        0xBB, 0x01, 0x00, 0x00, 0x00, // mov ebx, 1 (stdout)
+        0xB9, 0x40, 0x00, 0x40, 0x00, // mov ecx, 0x00400040
+        0xBA, 0x17, 0x00, 0x00, 0x00, // mov edx, 23
+        0xCD, 0x80,                   // int 0x80
+
+        0xB8, 0x01, 0x00, 0x00, 0x00, // mov eax, 1 (SYS_EXIT)
+        0xBB, 0x2A, 0x00, 0x00, 0x00, // mov ebx, 42
+        0xCD, 0x80,                   // int 0x80
+
+        0xEB, 0xFE                    // jmp $
+    };
+
+    for (uint32_t i = 0; i < sizeof(userProgram); i++) {
+        userBinary[i] = userProgram[i];
+    }
+    const char *msg = "Hello from User Mode!\n";
+    for (uint32_t i = 0; msg[i] != '\0'; i++) {
+        userBinary[0x40 + i] = (uint8_t)msg[i];
+    }
+
+    // Launch real User Process!
+    processCreate(userBinary, 0x40 + 23);
+
+    threadSleep(2000);
+
     vgaWrite("Done\n");
+    
     while (1);
 }

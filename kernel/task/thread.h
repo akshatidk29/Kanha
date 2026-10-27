@@ -12,6 +12,8 @@ enum ThreadState{
     THREAD_TERMINATED,
 };
 
+struct Process;
+
 struct Thread{
 
     uint32_t tid;
@@ -22,6 +24,8 @@ struct Thread{
     void *kernelStack;
     uint32_t *stackPointer;
     struct Thread* next;
+
+    struct Process* process;  
 };
 
 
