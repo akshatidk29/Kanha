@@ -12,6 +12,7 @@
 #include "serial.h"
 #include "printf.h"
 #include "lock.h"
+#include "tss.h"
 #include "thread.h"
 #include "scheduler.h"
 
@@ -149,17 +150,22 @@ void kernelMain(struct BootInfo *bootInfo)
     pitInitialize(1000);       // Initialize PIT with 1KHz frequency
     serialInitialize();
     pmmInitialize(bootInfo);
-
+    
     if(pagingInitialize() != 0){
         vgaWrite("Paging Initialization Failed\n");
         kernelPanic(NULL);
     }
     pagingEnable(getKernelPageDirectory());
-
+    
     if(heapInitialize() != 0){
         vgaWrite("Heap Initialization Failed\n");
         kernelPanic(NULL);
     }
+
+    uint32_t currentEsp;
+    __asm__ volatile("mov %%esp, %0" : "=r"(currentEsp));
+    
+    tssInitialize(0x10, currentEsp);
 
     picClearMask(0);          // Unmask Timer
     picClearMask(1);          // Unmask Keyboard

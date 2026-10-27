@@ -3,6 +3,8 @@
 #include "printf.h"
 #include "scheduler.h"
 
+#define BOOT_STACK_TOP (0xC0000000u + 0x90000u)
+
 static uint32_t nextTid = 0;
 
 static void threadEntry(void (*func)(void *), void *arg) {
@@ -19,7 +21,7 @@ struct Thread* threadInitialize(void) {
     mainThread->state = THREAD_RUNNING;
     mainThread->sleepTime = 0;
     mainThread->kernelStack = NULL;
-    mainThread->stackPointer = NULL;
+    mainThread->stackPointer = (void*)(BOOT_STACK_TOP - STACK_SIZE);
     mainThread->next = NULL;
 
     return mainThread;

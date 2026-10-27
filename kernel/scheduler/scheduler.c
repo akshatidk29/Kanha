@@ -1,5 +1,6 @@
 #include <stddef.h>
 
+#include "tss.h"
 #include "thread.h"
 #include "scheduler.h"
 
@@ -79,6 +80,9 @@ void yield(void) {
     next->state = THREAD_RUNNING;
     currentThread = next;
 
+    if(next->kernelStack){
+        tssSetKernelStack((uint32_t)(next->kernelStack) + STACK_SIZE);
+    }
     switchContext(&prev->stackPointer, next->stackPointer);
 }
 
