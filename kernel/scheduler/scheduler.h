@@ -3,6 +3,9 @@
 
 #include "thread.h"
 
+#define TIME_QUANTUM    100              // Time Quantum
+
+void schedulerTimer();
 void schedulerInitialize(void);
 void readyThreadsPush(struct Thread *thread);
 

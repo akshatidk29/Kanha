@@ -1,6 +1,7 @@
 #include "io.h"
 #include "pic.h"
 #include "timer.h"
+#include "scheduler.h"
 
 void pitInitialize(uint32_t freq){
     uint32_t divisor = 1193182 / freq;
@@ -13,4 +14,5 @@ void pitInitialize(uint32_t freq){
 void irqHandlerTimer(void){
     ticks++;
     picSendEOI(0);
+    schedulerTimer();
 }

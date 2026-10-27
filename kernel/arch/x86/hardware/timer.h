@@ -8,6 +8,7 @@
 #define PIT_CHANNEL0    0x40             // PIT Channel 0
 #define PIT_COMMAND     0x43             // PIT Command Port
 
+
 extern volatile uint32_t ticks;
 
 void pitInitialize(uint32_t freq);

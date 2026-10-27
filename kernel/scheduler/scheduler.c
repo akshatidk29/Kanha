@@ -7,6 +7,8 @@ static struct Thread *currentThread = NULL;
 static struct Thread *readyHead = NULL;
 static struct Thread *readyTail = NULL;
 
+volatile uint32_t tickCount = 0;
+
 void schedulerInitialize(void) {
     currentThread = threadInitialize();
 }
@@ -60,4 +62,11 @@ void yield(void) {
     currentThread = next;
 
     switchContext(&prev->stackPointer, next->stackPointer);
+}
+
+void schedulerTimer(){
+    tickCount++;
+    if(tickCount % TIME_QUANTUM == 0){
+        yield();
+    }
 }

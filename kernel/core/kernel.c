@@ -127,8 +127,18 @@ static void testHeap(void){
 }
 
 void* func1(){
-    printf("Akshat Mittal from Thread1\n");
+    while(1){
+        printf("Akshat Mittal from Thread1\n");
+        for(int i = 0; i < 10000000; i++);
+    }
     return NULL;
+}
+
+void* func2(){
+    while(1){
+        printf("Akshat Mittal from Thread2\n");
+        for(int i = 0; i < 10000000; i++);
+    }
 }
 
 void kernelMain(struct BootInfo *bootInfo)
@@ -163,10 +173,8 @@ void kernelMain(struct BootInfo *bootInfo)
     schedulerInitialize();
 
     threadCreate((void(*)(void*))func1, NULL);
+    threadCreate((void(*)(void*))func2, NULL);
 
-    
-    yield();
-    
     printf("Akshat Mittal from Main Thread\n");
 
     while (1) {}
