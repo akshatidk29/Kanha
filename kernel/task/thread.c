@@ -17,6 +17,7 @@ struct Thread* threadInitialize(void) {
 
     mainThread->tid = nextTid++;
     mainThread->state = THREAD_RUNNING;
+    mainThread->sleepTime = 0;
     mainThread->kernelStack = NULL;
     mainThread->stackPointer = NULL;
     mainThread->next = NULL;
@@ -37,6 +38,7 @@ struct Thread *threadCreate(void (*func)(void *), void *arg) {
     }
 
     thread->tid = nextTid++;
+    thread->sleepTime = 0;
     thread->kernelStack = stack;
 
     uint32_t *top = (uint32_t *)((uint8_t *)stack + STACK_SIZE);
@@ -65,4 +67,14 @@ void threadExit(void) {
     yield();
 
     while (1) {}
+}
+
+void threadSleep(uint32_t tms){
+
+    if(tms != 0){
+        struct Thread* currentThread = scheduledThread();
+        currentThread->state = THREAD_SLEEPING;
+        currentThread->sleepTime = tms;
+        yield();
+    }
 }

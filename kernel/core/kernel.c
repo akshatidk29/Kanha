@@ -11,10 +11,14 @@
 #include "heap.h"
 #include "serial.h"
 #include "printf.h"
+#include "lock.h"
 #include "thread.h"
 #include "scheduler.h"
 
 volatile uint32_t ticks;
+
+int globalCounter = 0;
+struct SpinLock lock;
 
 extern void enableInterrupts(void);
 
@@ -123,22 +127,16 @@ static void testHeap(void){
         kernelPanic("Coalescing failed\n");
     }
 
-    vgaWrite("Heap Tests Passed!\n\n");
+    vgaWrite("Heap Tests Passed\n");
 }
 
-void* func1(){
-    while(1){
-        printf("Akshat Mittal from Thread1\n");
-        for(int i = 0; i < 10000000; i++);
+void* func(int count){
+    spinLockAcquire(&lock);
+    for(int i = 0; i < count; i++){
+        globalCounter++;
     }
+    spinLockRelease(&lock);
     return NULL;
-}
-
-void* func2(){
-    while(1){
-        printf("Akshat Mittal from Thread2\n");
-        for(int i = 0; i < 10000000; i++);
-    }
 }
 
 void kernelMain(struct BootInfo *bootInfo)
@@ -172,10 +170,16 @@ void kernelMain(struct BootInfo *bootInfo)
     
     schedulerInitialize();
 
-    threadCreate((void(*)(void*))func1, NULL);
-    threadCreate((void(*)(void*))func2, NULL);
+    int count = 1000000;
+    spinLockInit(&lock);
+    threadCreate((void(*)(void*))func, (void*)(count));
+    threadCreate((void(*)(void*))func, (void*)(count));
+    threadCreate((void(*)(void*))func, (void*)(count));
+
+    threadSleep(2000);
 
     printf("Akshat Mittal from Main Thread\n");
+    printf("Global Counter: %d\n", globalCounter);
 
     while (1) {}
 }

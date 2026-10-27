@@ -30,6 +30,7 @@ add_executable(kernel.elf
     kernel/mm/heap.c
     kernel/drivers/serial/serial.c
     kernel/lib/printf.c
+    kernel/task/lock.c
     kernel/task/thread.c
     kernel/task/switch.asm
     kernel/scheduler/scheduler.c
