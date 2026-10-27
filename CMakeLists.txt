@@ -36,6 +36,7 @@ add_executable(kernel.elf
     kernel/scheduler/scheduler.c
     kernel/arch/x86/hardware/tss.c
     kernel/user/switch.asm
+    kernel/user/syscall.c
 )
 
 target_include_directories(kernel.elf 
@@ -55,6 +56,7 @@ target_include_directories(kernel.elf
     kernel/lib
     kernel/task
     kernel/scheduler
+    kernel/user
 )
 
 

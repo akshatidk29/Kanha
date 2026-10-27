@@ -9,11 +9,14 @@ global isr14
 global isr32
 global isr33
 global isr44
+global isr128
 
 extern exceptionHandlerDivideByZero
 extern exceptionHandlerDoubleFault
 extern exceptionHandlerGPF
 extern exceptionHandlerPageFault
+
+extern syscallHandler
 
 extern irqHandlerTimer
 extern irqHandlerKeyboard
@@ -70,4 +73,28 @@ isr44:
     pusha
     call irqHandlerMouse                      ; Mouse Interrupt
     popa
+    iret
+
+isr128:
+    push ds
+    push es
+    push fs
+    push gs
+    pusha
+    
+    mov ax, 0x10                             ; Switch to Kernel Data Segment
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    push esp                                 ; Pass pointer to SyscallFrame
+
+    call syscallHandler
+    
+    add esp, 4
+    popa
+    pop gs
+    pop fs
+    pop es
+    pop ds
     iret

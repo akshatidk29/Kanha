@@ -141,7 +141,7 @@ void* func(int count){
     return NULL;
 }
 
-void testUserModeJump(){
+void testUserModeJump(void) {
 
     uint32_t codeFrame = pmmAllocateFrame();
     mapPage(getCurrentPageDirectory(), 0x00400000, codeFrame, PAGE_USER | PAGE_WRITABLE);
@@ -150,17 +150,36 @@ void testUserModeJump(){
     mapPage(getCurrentPageDirectory(), 0x00800000, stackFrame, PAGE_USER | PAGE_WRITABLE);
 
     uint8_t *code = (uint8_t *)PHYS_TO_VIRT(codeFrame);
-    code[0] = 0x40;       // inc eax
-    code[1] = 0xEB;       // jmp
-    code[2] = 0xFD;       // jump back to 'inc eax'
 
-    uint32_t *stack = (uint32_t *)PHYS_TO_VIRT(stackFrame + STACK_SIZE - 4);
-    *stack = 0x12345678;  
+    // 1. Machine instructions for SYS_WRITE and SYS_EXIT
+    uint8_t userProgram[] = {
+        0xB8, 0x02, 0x00, 0x00, 0x00,
+        0xBB, 0x01, 0x00, 0x00, 0x00,
+        0xB9, 0x40, 0x00, 0x40, 0x00,
+        0xBA, 0x17, 0x00, 0x00, 0x00,
+        0xCD, 0x80,
 
-    vgaWrite("Going to user mode\n");
+        0xB8, 0x01, 0x00, 0x00, 0x00,
+        0xBB, 0x2A, 0x00, 0x00, 0x00,
+        0xCD, 0x80,
+
+        0xEB, 0xFE
+    };
+
+    for (uint32_t i = 0; i < sizeof(userProgram); i++) {
+        code[i] = userProgram[i];
+    }
+
+    const char *msg = "Hello from User Mode!\n";
+    for (uint32_t i = 0; msg[i] != '\0'; i++) {
+        code[0x40 + i] = (uint8_t)msg[i];
+    }
+
+    printf("Jumping to User Mode\n");
     jumpToUserMode(0x00400000, 0x00800000 + PAGE_SIZE - 16);
-    vgaWrite("Should never return!\n");
+    printf("Should never return!\n");
 }
+
 
 
 void kernelMain(struct BootInfo *bootInfo){
