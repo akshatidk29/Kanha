@@ -1,6 +1,7 @@
 BITS 32
 
 global _start
+global gdtStart
 global higherHalfEntry
 
 global idtLoad
@@ -150,6 +151,8 @@ gdtStart:
     db 0xF2
     db 0xCF
     db 0x00
+
+    dq 0x0000000000000000            ; TSS
 gdtEnd:
 
 gdtDescriptor:
