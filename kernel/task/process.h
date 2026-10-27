@@ -25,6 +25,8 @@ struct Process {
     uint32_t userStackTop;
 };
 
+
+void processInitialize(void);
 struct Process *currentProcess(void);
 
 struct Process *processCreate(const uint8_t *code, uint32_t codeSize);

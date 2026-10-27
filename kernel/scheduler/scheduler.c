@@ -17,6 +17,7 @@ volatile uint32_t tickCount = 0;
 
 void schedulerInitialize(void) {
     currentThread = threadInitialize();
+    processInitialize();
 }
 
 struct Thread *scheduledThread(void) {
@@ -85,14 +86,11 @@ void yield(void) {
         tssSetKernelStack((uint32_t)(next->kernelStack) + STACK_SIZE);
     }
 
-    // Switch AddressSpace (CR3)
-    if (next->process && (!prev->process || next->process != prev->process)) {
+    // Switch AddressSpace 
+    if (next->process != prev->process) {
         switchAddressSpace(&next->process->addressSpace);
-    } else if (!next->process && prev->process) {
-        // Switching from a user process back to a pure kernel thread
-        pagingEnable(getKernelPageDirectory());
     }
-
+     
     switchContext(&prev->stackPointer, next->stackPointer);
 }
 

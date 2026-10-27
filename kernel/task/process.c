@@ -1,4 +1,5 @@
 #include "pmm.h"
+#include "paging.h"
 #include "heap.h"
 #include "process.h"
 #include "printf.h"
@@ -7,7 +8,21 @@
 extern void jumpToUserMode(uint32_t userIp, uint32_t userSp);
 
 static uint32_t nextPid = 1;
+static struct Process kernelProcess;
 
+void processInitialize(void){
+    kernelProcess.pid = 0;
+    kernelProcess.state = PROCESS_RUNNING;
+    kernelProcess.exitCode = 0; 
+
+    kernelProcess.addressSpace.pageDirectory = getKernelPageDirectory();
+    kernelProcess.entryPoint = 0;
+    kernelProcess.userStackTop = 0;
+
+    struct Thread *mainThread = scheduledThread();
+    kernelProcess.mainThread = mainThread;
+    mainThread->process = &kernelProcess;
+}
 
 static void processEntry(void *arg) { 
 
@@ -61,6 +76,7 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
     // Map User Stack Page
     uint32_t stackPhys = pmmAllocateFrame();
     if (!stackPhys) {
+        pmmDeallocateFrame(codePhys);
         destroyAddressSpace(&proc->addressSpace);
         kFree(proc);
         return NULL;
@@ -68,6 +84,7 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
 
     if (addressSpaceMapPage(&proc->addressSpace, 0x00800000, stackPhys, PAGE_USER | PAGE_WRITABLE) != 0) {
         pmmDeallocateFrame(stackPhys);
+        pmmDeallocateFrame(codePhys);
         destroyAddressSpace(&proc->addressSpace);
         kFree(proc);
         return NULL;
@@ -77,6 +94,8 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
     // Create the main thread for this process
     struct Thread *thread = threadCreate(processEntry, proc);
     if (!thread) {
+        pmmDeallocateFrame(stackPhys);
+        pmmDeallocateFrame(codePhys);
         destroyAddressSpace(&proc->addressSpace);
         kFree(proc);
         return NULL;

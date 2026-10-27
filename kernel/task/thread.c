@@ -2,6 +2,7 @@
 #include "thread.h"
 #include "printf.h"
 #include "scheduler.h"
+#include "process.h"
 
 #define BOOT_STACK_TOP (0xC0000000u + 0x90000u)
 
@@ -43,7 +44,7 @@ struct Thread *threadCreate(void (*func)(void *), void *arg) {
     thread->tid = nextTid++;
     thread->sleepTime = 0;
     thread->kernelStack = stack;
-    thread->process = NULL;
+    thread->process = currentProcess();
     
     uint32_t *top = (uint32_t *)((uint8_t *)stack + STACK_SIZE);
 
