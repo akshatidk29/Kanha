@@ -2,7 +2,7 @@
 #include "paging.h"
 #include "heap.h"
 #include "process.h"
-#include "printf.h"
+#include "kprintf.h"
 #include "scheduler.h"
 
 extern void jumpToUserMode(uint32_t userIp, uint32_t userSp);

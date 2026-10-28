@@ -8,6 +8,7 @@ global isr13
 global isr14
 global isr32
 global isr33
+global isr36
 global isr44
 global isr128
 
@@ -20,6 +21,7 @@ extern syscallHandler
 
 extern irqHandlerTimer
 extern irqHandlerKeyboard
+extern irqHandlerSerial
 extern irqHandlerMouse
 
 isr0:
@@ -68,7 +70,13 @@ isr33:                                        ; Keyboard Interrupt
     call irqHandlerKeyboard
     popa
     iret
-    
+
+isr36:
+    pusha
+    call irqHandlerSerial                     ; Serial Interrupt 
+    popa
+    iret
+
 isr44:
     pusha
     call irqHandlerMouse                      ; Mouse Interrupt

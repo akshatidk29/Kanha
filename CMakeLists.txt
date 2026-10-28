@@ -29,7 +29,7 @@ add_executable(kernel.elf
     kernel/mm/addressSpace.c
     kernel/mm/heap.c
     kernel/drivers/serial/serial.c
-    kernel/lib/printf.c
+    kernel/lib/kprintf.c
     kernel/task/lock.c
     kernel/task/thread.c
     kernel/task/switch.asm

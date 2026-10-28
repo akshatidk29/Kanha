@@ -2,9 +2,9 @@
 #include <stdint.h>
 
 #include "serial.h"
-#include "printf.h"
+#include "kprintf.h"
 
-void printf(const char *fmt, ...)
+void kprintf(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);

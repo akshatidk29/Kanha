@@ -10,7 +10,7 @@
 #include "memLayout.h"
 #include "heap.h"
 #include "serial.h"
-#include "printf.h"
+#include "kprintf.h"
 #include "lock.h"
 #include "tss.h"
 #include "thread.h"
@@ -171,6 +171,7 @@ void kernelMain(struct BootInfo *bootInfo){
 
     picClearMask(0);          // Unmask Timer
     picClearMask(1);          // Unmask Keyboard
+    picClearMask(4);          // Unmask Serial
     enableInterrupts();
     
     testPaging();
@@ -186,8 +187,8 @@ void kernelMain(struct BootInfo *bootInfo){
 
     threadSleep(2000);
 
-    printf("Akshat Mittal from Main Thread\n");
-    printf("Global Counter: %d\n", globalCounter);
+    kprintf("Akshat Mittal from Main Thread\n");
+    kprintf("Global Counter: %d\n", globalCounter);
 
 
     uint8_t userBinary[128];
@@ -220,5 +221,7 @@ void kernelMain(struct BootInfo *bootInfo){
 
     vgaWrite("Done\n");
     
-    while (1);
+    while (1) {
+        __asm__ volatile("hlt");
+    }
 }

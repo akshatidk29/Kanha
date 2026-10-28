@@ -1,4 +1,6 @@
+#include "vga.h"
 #include "io.h"
+#include "pic.h"
 #include "serial.h"
 
 int serialInitialize(void) {
@@ -8,7 +10,7 @@ int serialInitialize(void) {
     outB(SERIAL_COM1 + 0, 0x03);  // Set divisor to 3 (38400 baud)
     outB(SERIAL_COM1 + 1, 0x00);  // Divisor high byte
     outB(SERIAL_COM1 + 3, 0x03);  // 8 bits, no parity, one stop bit
-    outB(SERIAL_COM1 + 2, 0xC7);  // Enable FIFO, clear them, with 14-byte threshold
+    outB(SERIAL_COM1 + 2, 0x07);  // Enable FIFO, clear them, with 1-byte threshold
     outB(SERIAL_COM1 + 4, 0x0B);  // IRQs enabled, RTS/DSR set
     outB(SERIAL_COM1 + 4, 0x1E);  // Enable loopback mode
     outB(SERIAL_COM1 + 0, 0xAE);  // Send test byte
@@ -16,8 +18,21 @@ int serialInitialize(void) {
     if (inB(SERIAL_COM1 + 0) != 0xAE) {
         return -1;                // Faulty serial chip or not present
     }
-    outB(SERIAL_COM1 + 4, 0x0F);  // Normal operation mode
+    outB(SERIAL_COM1 + 4, 0x0F);  // Normal operation mode 
+    outB(SERIAL_COM1 + 1, 0x01);  // Enable Received Data Available interrupt
     return 0;
+}
+
+void irqHandlerSerial(void) {
+    while (serialReceived()) {
+        char c = (char)inB(SERIAL_COM1);
+        if (c == '\r') {
+            c = '\n';
+        }
+        vgaPutChar(c);        // Echo to screen
+        serialWriteChar(c);   // Echo back to terminal
+    }
+    picSendEOI(4);
 }
 
 int serialTransmitReady(void) {

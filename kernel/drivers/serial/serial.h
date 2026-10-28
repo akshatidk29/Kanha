@@ -6,6 +6,8 @@
 
 #define SERIAL_COM1 0x3F8
 
+void irqHandlerSerial(void);
+
 int serialInitialize(void);
 int serialTransmitReady(void);
 

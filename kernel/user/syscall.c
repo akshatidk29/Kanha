@@ -1,7 +1,7 @@
 #include "syscall.h"
 #include "serial.h"
 #include "vga.h"
-#include "printf.h"
+#include "kprintf.h"
 #include "thread.h"
 #include "process.h"
 #include "scheduler.h"
@@ -32,10 +32,10 @@ void syscallHandler(struct SyscallFrame *frame) {
             int status = (int)frame->ebx;
             struct Process *proc = currentProcess();
             if (proc) {
-                printf("Process %d exited with code %d\n", proc->pid, status);
+                kprintf("Process %d exited with code %d\n", proc->pid, status);
                 processExit(status);
             } else {
-                printf("Thread %d exited with code %d\n", scheduledThread()->tid, status);
+                kprintf("Thread %d exited with code %d\n", scheduledThread()->tid, status);
                 threadExit();
             }
             break;
@@ -64,7 +64,7 @@ void syscallHandler(struct SyscallFrame *frame) {
         }
 
         default: {
-            printf("[SYSCALL] Unknown syscall number: %d\n", syscallNumber);
+            kprintf("[SYSCALL] Unknown syscall number: %d\n", syscallNumber);
             frame->eax = -1;
             break;
         }

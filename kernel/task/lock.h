@@ -5,12 +5,12 @@
 
 static inline uint32_t disableInterrupts(void) {
     uint32_t flags;
-    __asm__ volatile("pushf; pop %0; cli" : "=r"(flags) : : "memory");
+    __asm__ volatile("pushfl; popl %0; cli" : "=r"(flags) : : "memory");
     return flags;   
 }
 
-static inline void enableInterrupts(uint32_t flags) {
-    __asm__ volatile("push %0; popfd" : :"r"(flags) : "memory");
+static inline void restoreInterrupts(uint32_t flags) {
+    __asm__ volatile("pushl %0; popfl" : : "r"(flags) : "memory");
 }
 
 typedef struct SpinLock {

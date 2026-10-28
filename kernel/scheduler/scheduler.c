@@ -1,6 +1,7 @@
 #include <stddef.h>
 
 #include "tss.h"
+#include "lock.h"
 #include "thread.h"
 #include "paging.h"
 #include "process.h"
@@ -39,7 +40,7 @@ void readyThreadsPush(struct Thread *thread) {
         readyTail = thread;
     }
 
-    enableInterrupts(flags);
+    restoreInterrupts(flags);
 }
 
 void sleepThreadsPush(struct Thread *thread) {
@@ -56,15 +57,17 @@ void sleepThreadsPush(struct Thread *thread) {
         sleepTail = thread;
     }
 
-    enableInterrupts(flags);
+    restoreInterrupts(flags);
 }
 
 static struct Thread *readyThreadsPop(void) {
 
     uint32_t flags = disableInterrupts();
     
-    if (!readyHead) 
+    if (!readyHead) {
+        restoreInterrupts(flags);
         return NULL;
+    }
 
     struct Thread *t = readyHead;
     readyHead = readyHead->next;
@@ -74,7 +77,7 @@ static struct Thread *readyThreadsPop(void) {
 
     t->next = NULL;
 
-    enableInterrupts(flags);
+    restoreInterrupts(flags);
     return t;
 }
 

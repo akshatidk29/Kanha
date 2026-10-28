@@ -1,6 +1,6 @@
 #include "heap.h"
 #include "thread.h"
-#include "printf.h"
+#include "kprintf.h"
 #include "scheduler.h"
 #include "process.h"
 
@@ -69,9 +69,11 @@ void threadExit(void) {
     struct Thread* currentThread = scheduledThread();
     currentThread->state = THREAD_TERMINATED;
     
-    yield();
-
-    while (1) {}
+    __asm__ volatile("sti");
+    while (1) {
+        yield();
+        __asm__ volatile("hlt");
+    }
 }
 
 void threadSleep(uint32_t tms){
