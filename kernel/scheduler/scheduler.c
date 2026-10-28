@@ -25,7 +25,9 @@ struct Thread *scheduledThread(void) {
 }
 
 void readyThreadsPush(struct Thread *thread) {
-
+    
+    uint32_t flags = disableInterrupts();
+    
     thread->next = NULL;
     thread->state = THREAD_READY;
 
@@ -36,9 +38,13 @@ void readyThreadsPush(struct Thread *thread) {
         readyTail->next = thread;
         readyTail = thread;
     }
+
+    enableInterrupts(flags);
 }
 
 void sleepThreadsPush(struct Thread *thread) {
+    
+    uint32_t flags = disableInterrupts();
     
     thread->next = NULL;
 
@@ -49,10 +55,14 @@ void sleepThreadsPush(struct Thread *thread) {
         sleepTail->next = thread;
         sleepTail = thread;
     }
+
+    enableInterrupts(flags);
 }
 
 static struct Thread *readyThreadsPop(void) {
 
+    uint32_t flags = disableInterrupts();
+    
     if (!readyHead) 
         return NULL;
 
@@ -63,6 +73,8 @@ static struct Thread *readyThreadsPop(void) {
         readyTail = NULL;
 
     t->next = NULL;
+
+    enableInterrupts(flags);
     return t;
 }
 
