@@ -15,13 +15,13 @@ set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
 add_custom_command(
     OUTPUT ${BUILD_DIR}/init.bin
-    COMMAND nasm -f elf32 ${CMAKE_SOURCE_DIR}/user/crt0.asm -o ${BUILD_DIR}/crt0.o
-    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user -I${CMAKE_SOURCE_DIR}/kernel/user -c ${CMAKE_SOURCE_DIR}/user/init.c -o ${BUILD_DIR}/init.o
-    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user -I${CMAKE_SOURCE_DIR}/kernel/user -c ${CMAKE_SOURCE_DIR}/user/stdio.c -o ${BUILD_DIR}/stdio.o
-    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user -I${CMAKE_SOURCE_DIR}/kernel/user -c ${CMAKE_SOURCE_DIR}/user/ulib.c -o ${BUILD_DIR}/ulib.o
-    COMMAND ld -m elf_i386 -T ${CMAKE_SOURCE_DIR}/user/user.ld -no-pie ${BUILD_DIR}/crt0.o ${BUILD_DIR}/init.o ${BUILD_DIR}/stdio.o ${BUILD_DIR}/ulib.o -o ${BUILD_DIR}/init.elf
+    COMMAND nasm -f elf32 ${CMAKE_SOURCE_DIR}/user/lib/crt0.asm -o ${BUILD_DIR}/crt0.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/bin/init.c -o ${BUILD_DIR}/init.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/lib/stdio.c -o ${BUILD_DIR}/stdio.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/lib/ulib.c -o ${BUILD_DIR}/ulib.o
+    COMMAND ld -m elf_i386 -T ${CMAKE_SOURCE_DIR}/user/lib/user.ld -no-pie ${BUILD_DIR}/crt0.o ${BUILD_DIR}/init.o ${BUILD_DIR}/stdio.o ${BUILD_DIR}/ulib.o -o ${BUILD_DIR}/init.elf
     COMMAND objcopy -O binary ${BUILD_DIR}/init.elf ${BUILD_DIR}/init.bin
-    DEPENDS ${CMAKE_SOURCE_DIR}/user/crt0.asm ${CMAKE_SOURCE_DIR}/user/init.c ${CMAKE_SOURCE_DIR}/user/stdio.c ${CMAKE_SOURCE_DIR}/user/ulib.c ${CMAKE_SOURCE_DIR}/user/user.ld
+    DEPENDS ${CMAKE_SOURCE_DIR}/user/lib/crt0.asm ${CMAKE_SOURCE_DIR}/user/bin/init.c ${CMAKE_SOURCE_DIR}/user/lib/stdio.c ${CMAKE_SOURCE_DIR}/user/lib/ulib.c ${CMAKE_SOURCE_DIR}/user/lib/user.ld
     COMMENT "Building user init.bin"
 )
 
@@ -41,26 +41,26 @@ add_executable(kernel.elf
     kernel/drivers/vga/vga.c
     kernel/drivers/mouse/mouse.c
     kernel/drivers/keyboard/keyboard.c
+    kernel/drivers/input/stdin.c
+    kernel/drivers/serial/serial.c
     kernel/arch/x86/hardware/pic.c
+    kernel/arch/x86/hardware/timer.c
+    kernel/arch/x86/hardware/tss.c
+    kernel/arch/x86/hardware/paging.asm
     kernel/arch/x86/interrupts/isr.asm
     kernel/arch/x86/interrupts/idt.c
     kernel/arch/x86/interrupts/exception.c
-    kernel/arch/x86/hardware/timer.c
     kernel/mm/paging.c
-    kernel/arch/x86/paging/paging.asm
     kernel/mm/addressSpace.c
     kernel/mm/heap.c
-    kernel/drivers/serial/serial.c
     kernel/lib/kprintf.c
     kernel/task/lock.c
     kernel/task/thread.c
     kernel/task/switch.asm
-    kernel/scheduler/scheduler.c
-    kernel/arch/x86/hardware/tss.c
-    kernel/user/switch.asm
-    kernel/user/syscall.c
-    kernel/user/stdin.c
+    kernel/task/scheduler.c
     kernel/task/process.c
+    kernel/syscall/switch.asm
+    kernel/syscall/syscall.c
     ${BUILD_DIR}/initBin.o
 )
 
@@ -70,22 +70,18 @@ target_include_directories(kernel.elf
     kernel/arch/x86
     kernel/arch/x86/interrupts
     kernel/arch/x86/hardware
+    kernel/arch/x86/boot
     kernel/drivers/vga
     kernel/drivers/keyboard
     kernel/drivers/mouse
+    kernel/drivers/serial
+    kernel/drivers/input
     kernel/core
     kernel/mm
-    kernel/arch/x86/boot
-    kernel/arch/x86/paging
-    kernel/drivers/serial
     kernel/lib
     kernel/task
-    kernel/scheduler
-    kernel/user
+    kernel/syscall
 )
-
-
-set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
 add_custom_command(TARGET kernel.elf POST_BUILD
     COMMAND objcopy -O binary $<TARGET_FILE:kernel.elf> ${BUILD_DIR}/kernel.bin
