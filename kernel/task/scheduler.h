@@ -1,7 +1,7 @@
 #ifndef KANHA_SCHEDULER_H
 #define KANHA_SCHEDULER_H
 
-#include "thread.h"
+#include "task/thread.h"
 
 #define TIME_QUANTUM    100              // Time Quantum
 

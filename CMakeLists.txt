@@ -38,11 +38,11 @@ add_executable(kernel.elf
     kernel/core/kernel.c
     kernel/lib/math.c
     kernel/mm/pmm.c
-    kernel/drivers/vga/vga.c
-    kernel/drivers/mouse/mouse.c
-    kernel/drivers/keyboard/keyboard.c
-    kernel/drivers/input/stdin.c
-    kernel/drivers/serial/serial.c
+    kernel/drivers/vga.c
+    kernel/drivers/mouse.c
+    kernel/drivers/keyboard.c
+    kernel/drivers/stdin.c
+    kernel/drivers/serial.c
     kernel/arch/x86/hardware/pic.c
     kernel/arch/x86/hardware/timer.c
     kernel/arch/x86/hardware/tss.c
@@ -68,19 +68,6 @@ target_include_directories(kernel.elf
     PRIVATE
     kernel
     kernel/arch/x86
-    kernel/arch/x86/interrupts
-    kernel/arch/x86/hardware
-    kernel/arch/x86/boot
-    kernel/drivers/vga
-    kernel/drivers/keyboard
-    kernel/drivers/mouse
-    kernel/drivers/serial
-    kernel/drivers/input
-    kernel/core
-    kernel/mm
-    kernel/lib
-    kernel/task
-    kernel/syscall
 )
 
 add_custom_command(TARGET kernel.elf POST_BUILD

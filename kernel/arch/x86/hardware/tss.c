@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
-#include "tss.h"
+#include "hardware/tss.h"
 
 // 8-byte 
 struct GDTEntry {

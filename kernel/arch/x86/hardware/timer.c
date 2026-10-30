@@ -1,7 +1,7 @@
-#include "io.h"
-#include "pic.h"
-#include "timer.h"
-#include "scheduler.h"
+#include "hardware/io.h"
+#include "hardware/pic.h"
+#include "hardware/timer.h"
+#include "task/scheduler.h"
 
 void pitInitialize(uint32_t freq){
     uint32_t divisor = 1193182 / freq;

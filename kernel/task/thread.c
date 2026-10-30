@@ -1,8 +1,8 @@
-#include "heap.h"
-#include "thread.h"
-#include "kprintf.h"
-#include "scheduler.h"
-#include "process.h"
+#include "mm/heap.h"
+#include "task/thread.h"
+#include "lib/kprintf.h"
+#include "task/scheduler.h"
+#include "task/process.h"
 
 #define BOOT_STACK_TOP (0xC0000000u + 0x90000u)
 

@@ -2,7 +2,7 @@
 #define KANHA_ADDRESS_SPACE_H
 
 #include <stdint.h>
-#include "memLayout.h"
+#include "mm/memLayout.h"
 
 // User virtual memory spans from 0x00001000 to 0xC0000000 (3 GB)
 #define ADDRESS_SPACE_USER_START 0x00001000u

@@ -1,8 +1,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#include "serial.h"
-#include "kprintf.h"
+#include "drivers/serial.h"
+#include "lib/kprintf.h"
 
 void kprintf(const char *fmt, ...)
 {

@@ -1,8 +1,8 @@
-#include "vga.h"
-#include "io.h"
-#include "pic.h"
-#include "serial.h"
-#include "stdin.h"
+#include "drivers/vga.h"
+#include "hardware/io.h"
+#include "hardware/pic.h"
+#include "drivers/serial.h"
+#include "drivers/stdin.h"
 
 int serialInitialize(void) {
     

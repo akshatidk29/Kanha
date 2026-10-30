@@ -1,6 +1,6 @@
-#include "io.h"
-#include "vga.h"
-#include "memLayout.h"
+#include "hardware/io.h"
+#include "drivers/vga.h"
+#include "mm/memLayout.h"
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25

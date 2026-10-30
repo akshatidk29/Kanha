@@ -1,5 +1,5 @@
-#include "lock.h"
-#include "scheduler.h"
+#include "task/lock.h"
+#include "task/scheduler.h"
 
 void spinLockInit(SpinLock* lock) {
     lock->flag = 0;

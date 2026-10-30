@@ -1,9 +1,9 @@
-#include "pmm.h"
+#include "mm/pmm.h"
 #include <stdint.h>
 #include <stddef.h>
 
-#include "memLayout.h"
-#include "e820.h"
+#include "mm/memLayout.h"
+#include "boot/e820.h"
 
 #define BITS_PER_BYTE 8u
 #define BITMAP_SIZE   (PMM_FRAME_COUNT / BITS_PER_BYTE)

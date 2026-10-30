@@ -1,5 +1,5 @@
-#include "idt.h"
-#include "vga.h"
+#include "interrupts/idt.h"
+#include "drivers/vga.h"
 
 static struct IDTPtr idtr;
 static struct IDTEntry idt[256];

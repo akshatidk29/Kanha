@@ -1,7 +1,7 @@
-#include "pmm.h"
-#include "heap.h"
-#include "paging.h"
-#include "memLayout.h"
+#include "mm/pmm.h"
+#include "mm/heap.h"
+#include "mm/paging.h"
+#include "mm/memLayout.h"
 
 struct Heap heap;
 

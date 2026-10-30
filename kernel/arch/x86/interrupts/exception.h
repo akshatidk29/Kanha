@@ -1,7 +1,8 @@
 #ifndef KANHA_EXCEPTION_H
 #define KANHA_EXCEPTION_H
 
-#include "vga.h"
+#include <stdint.h>
+#include "drivers/vga.h"
 
 void exceptionHandlerDivideByZero(void);
 void exceptionHandlerDoubleFault(uint32_t errorCode);

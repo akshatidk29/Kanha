@@ -1,4 +1,4 @@
-#include "mouse.h"
+#include "drivers/mouse.h"
 
 void mouseInitialize(void){
     return;

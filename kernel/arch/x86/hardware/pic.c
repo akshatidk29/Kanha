@@ -1,5 +1,5 @@
-#include "io.h"
-#include "pic.h"
+#include "hardware/io.h"
+#include "hardware/pic.h"
 
 void picInitialize(void)
 {

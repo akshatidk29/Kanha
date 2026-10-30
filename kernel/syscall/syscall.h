@@ -2,7 +2,7 @@
 #define KANHA_SYSCALL_H
 
 #include <stdint.h>
-#include "syscallNum.h"
+#include "syscall/syscallNum.h"
 
 struct SyscallFrame {
     uint32_t edi, esi, ebp, espDummy, ebx, edx, ecx, eax;       // Pushed by pusha

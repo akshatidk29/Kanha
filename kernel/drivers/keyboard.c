@@ -1,9 +1,9 @@
-#include "io.h"
-#include "vga.h"
-#include "pic.h"
-#include "serial.h"
-#include "keyboard.h"
-#include "stdin.h"
+#include "hardware/io.h"
+#include "hardware/pic.h"
+#include "drivers/vga.h"
+#include "drivers/serial.h"
+#include "drivers/keyboard.h"
+#include "drivers/stdin.h"
 
 static const char codeToAscii[128] = {
     [0x01] = 0,

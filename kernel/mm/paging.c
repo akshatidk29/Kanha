@@ -1,6 +1,6 @@
-#include "paging.h"
-#include "pmm.h"
-#include "memLayout.h"
+#include "mm/paging.h"
+#include "mm/pmm.h"
+#include "mm/memLayout.h"
 
 #include <stdint.h>
 

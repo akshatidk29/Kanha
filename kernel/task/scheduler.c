@@ -1,11 +1,11 @@
 #include <stddef.h>
 
-#include "tss.h"
-#include "lock.h"
-#include "thread.h"
-#include "paging.h"
-#include "process.h"
-#include "scheduler.h"
+#include "hardware/tss.h"
+#include "task/lock.h"
+#include "task/thread.h"
+#include "mm/paging.h"
+#include "task/process.h"
+#include "task/scheduler.h"
 
 static struct Thread *currentThread = NULL;
 static struct Thread *readyHead = NULL;

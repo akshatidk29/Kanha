@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "pmm.h"
-#include "paging.h"
-#include "memLayout.h"
+#include "mm/pmm.h"
+#include "mm/paging.h"
+#include "mm/memLayout.h"
 
 #define STRUCT_BLOCK_SIZE ((sizeof(struct Block) + 7) & ~7u)
 

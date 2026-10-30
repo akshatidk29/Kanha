@@ -1,11 +1,11 @@
-#include "syscall.h"
-#include "serial.h"
-#include "vga.h"
-#include "kprintf.h"
-#include "thread.h"
-#include "process.h"
-#include "scheduler.h"
-#include "stdin.h"
+#include "syscall/syscall.h"
+#include "drivers/serial.h"
+#include "drivers/vga.h"
+#include "drivers/stdin.h"
+#include "lib/kprintf.h"
+#include "task/thread.h"
+#include "task/process.h"
+#include "task/scheduler.h"
 
 static int sysWrite(int fd, const char *buf, uint32_t len) {
 

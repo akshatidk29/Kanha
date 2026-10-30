@@ -1,9 +1,9 @@
-#include "pmm.h"
-#include "paging.h"
-#include "heap.h"
-#include "process.h"
-#include "kprintf.h"
-#include "scheduler.h"
+#include "mm/pmm.h"
+#include "mm/paging.h"
+#include "mm/heap.h"
+#include "task/process.h"
+#include "lib/kprintf.h"
+#include "task/scheduler.h"
 
 extern void jumpToUserMode(uint32_t userIp, uint32_t userSp);
 

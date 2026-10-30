@@ -1,5 +1,5 @@
-#include "stdin.h"
-#include "lock.h"
+#include "drivers/stdin.h"
+#include "task/lock.h"
 
 #define STDIN_BUF_SIZE 256
 

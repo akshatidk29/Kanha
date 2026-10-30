@@ -1,9 +1,8 @@
 #include <stdint.h>
-#include "addressSpace.h"
-
-#include "pmm.h"
-#include "paging.h"
-#include "memLayout.h"
+#include "mm/addressSpace.h"
+#include "mm/pmm.h"
+#include "mm/paging.h"
+#include "mm/memLayout.h"
 
 #define PAGE_SIZE          4096u
 #define PAGE_ENTRIES       1024u

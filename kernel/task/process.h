@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "thread.h"
-#include "addressSpace.h"
+#include "task/thread.h"
+#include "mm/addressSpace.h"
 
 enum ProcessState {
     PROCESS_CREATED,

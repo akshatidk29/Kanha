@@ -1,9 +1,9 @@
-#include "io.h"
-#include "pic.h"
-#include "vga.h"
-#include "paging.h"
-#include "exception.h"
-#include "memLayout.h"
+#include "hardware/io.h"
+#include "hardware/pic.h"
+#include "drivers/vga.h"
+#include "mm/paging.h"
+#include "interrupts/exception.h"
+#include "mm/memLayout.h"
 
 #define ADDRESS_MASK 0xFFFFF000u
 
