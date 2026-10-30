@@ -2,6 +2,7 @@
 #include "io.h"
 #include "pic.h"
 #include "serial.h"
+#include "stdin.h"
 
 int serialInitialize(void) {
     
@@ -31,6 +32,7 @@ void irqHandlerSerial(void) {
         }
         vgaPutChar(c);        // Echo to screen
         serialWriteChar(c);   // Echo back to terminal
+        stdinPutChar(c);      // Feed into stdin buffer
     }
     picSendEOI(4);
 }

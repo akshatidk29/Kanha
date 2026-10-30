@@ -11,6 +11,28 @@ set(CMAKE_ASM_NASM_FLAGS "-f elf32")
 set(CMAKE_C_FLAGS "-m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables")
 set(CMAKE_EXE_LINKER_FLAGS "-no-pie -nostdlib -Wl,-m,elf_i386 -Wl,-T,${CMAKE_SOURCE_DIR}/linker/linker.ld -Wl,--oformat=elf32-i386")
 
+set(BUILD_DIR ${CMAKE_BINARY_DIR})
+
+add_custom_command(
+    OUTPUT ${BUILD_DIR}/init.bin
+    COMMAND nasm -f elf32 ${CMAKE_SOURCE_DIR}/user/crt0.asm -o ${BUILD_DIR}/crt0.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user -I${CMAKE_SOURCE_DIR}/kernel/user -c ${CMAKE_SOURCE_DIR}/user/init.c -o ${BUILD_DIR}/init.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user -I${CMAKE_SOURCE_DIR}/kernel/user -c ${CMAKE_SOURCE_DIR}/user/stdio.c -o ${BUILD_DIR}/stdio.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user -I${CMAKE_SOURCE_DIR}/kernel/user -c ${CMAKE_SOURCE_DIR}/user/ulib.c -o ${BUILD_DIR}/ulib.o
+    COMMAND ld -m elf_i386 -T ${CMAKE_SOURCE_DIR}/user/user.ld -no-pie ${BUILD_DIR}/crt0.o ${BUILD_DIR}/init.o ${BUILD_DIR}/stdio.o ${BUILD_DIR}/ulib.o -o ${BUILD_DIR}/init.elf
+    COMMAND objcopy -O binary ${BUILD_DIR}/init.elf ${BUILD_DIR}/init.bin
+    DEPENDS ${CMAKE_SOURCE_DIR}/user/crt0.asm ${CMAKE_SOURCE_DIR}/user/init.c ${CMAKE_SOURCE_DIR}/user/stdio.c ${CMAKE_SOURCE_DIR}/user/ulib.c ${CMAKE_SOURCE_DIR}/user/user.ld
+    COMMENT "Building user init.bin"
+)
+
+add_custom_command(
+    OUTPUT ${BUILD_DIR}/initBin.o
+    COMMAND ld -m elf_i386 -r -b binary -o ${BUILD_DIR}/initBin.o init.bin
+    WORKING_DIRECTORY ${BUILD_DIR}
+    DEPENDS ${BUILD_DIR}/init.bin
+    COMMENT "Converting init.bin to initBin.o"
+)
+
 add_executable(kernel.elf
     kernel/arch/x86/boot/start.asm
     kernel/core/kernel.c
@@ -37,7 +59,9 @@ add_executable(kernel.elf
     kernel/arch/x86/hardware/tss.c
     kernel/user/switch.asm
     kernel/user/syscall.c
+    kernel/user/stdin.c
     kernel/task/process.c
+    ${BUILD_DIR}/initBin.o
 )
 
 target_include_directories(kernel.elf 

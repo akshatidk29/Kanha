@@ -16,7 +16,10 @@
 #include "thread.h"
 #include "scheduler.h"
 #include "process.h"
+#include "stdin.h"
 
+extern uint8_t _binary_init_bin_start[];
+extern uint8_t _binary_init_bin_end[];
 
 volatile uint32_t ticks;
 
@@ -151,6 +154,7 @@ void kernelMain(struct BootInfo *bootInfo){
     picInitialize();           // Initialize PIC
     pitInitialize(1000);       // Initialize PIT with 1KHz frequency
     serialInitialize();
+    stdinInitialize();
     pmmInitialize(bootInfo);
     
     if(pagingInitialize() != 0){
@@ -190,37 +194,11 @@ void kernelMain(struct BootInfo *bootInfo){
     kprintf("Akshat Mittal from Main Thread\n");
     kprintf("Global Counter: %d\n", globalCounter);
 
+    // Launch compiled C User Process
+    uint32_t initSize = (uint32_t)(_binary_init_bin_end - _binary_init_bin_start);
+    kprintf("Launching User C Process\n");
+    processCreate(_binary_init_bin_start, initSize);
 
-    uint8_t userBinary[128];
-    uint8_t userProgram[] = {
-        0xB8, 0x02, 0x00, 0x00, 0x00, // mov eax, 2 (SYS_WRITE)
-        0xBB, 0x01, 0x00, 0x00, 0x00, // mov ebx, 1 (stdout)
-        0xB9, 0x40, 0x00, 0x40, 0x00, // mov ecx, 0x00400040
-        0xBA, 0x17, 0x00, 0x00, 0x00, // mov edx, 23
-        0xCD, 0x80,                   // int 0x80
-
-        0xB8, 0x01, 0x00, 0x00, 0x00, // mov eax, 1 (SYS_EXIT)
-        0xBB, 0x2A, 0x00, 0x00, 0x00, // mov ebx, 42
-        0xCD, 0x80,                   // int 0x80
-
-        0xEB, 0xFE                    // jmp $
-    };
-
-    for (uint32_t i = 0; i < sizeof(userProgram); i++) {
-        userBinary[i] = userProgram[i];
-    }
-    const char *msg = "Hello from User Mode!\n";
-    for (uint32_t i = 0; msg[i] != '\0'; i++) {
-        userBinary[0x40 + i] = (uint8_t)msg[i];
-    }
-
-    // Launch real User Process!
-    processCreate(userBinary, 0x40 + 23);
-
-    threadSleep(2000);
-
-    vgaWrite("Done\n");
-    
     while (1) {
         __asm__ volatile("hlt");
     }

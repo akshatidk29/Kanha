@@ -3,6 +3,7 @@
 #include "pic.h"
 #include "serial.h"
 #include "keyboard.h"
+#include "stdin.h"
 
 static const char codeToAscii[128] = {
     [0x01] = 0,
@@ -148,9 +149,13 @@ void keyboardInitialize(void){
 void irqHandlerKeyboard(void){
     uint8_t scanByte = inB(0x60);
 
-    if (!(scanByte & (0x80))){
-        vgaPutChar(codeToAscii[scanByte]);
-        serialWriteChar(codeToAscii[scanByte]);
+    if (!(scanByte & 0x80)){
+        char c = codeToAscii[scanByte];
+        if (c != 0) {
+            vgaPutChar(c);
+            serialWriteChar(c);
+            stdinPutChar(c);
+        }
     }
     picSendEOI(1);
     return;
