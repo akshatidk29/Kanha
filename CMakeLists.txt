@@ -54,6 +54,7 @@ add_executable(kernel.elf
     kernel/mm/addressSpace.c
     kernel/mm/heap.c
     kernel/lib/kprintf.c
+    kernel/lib/string.c
     kernel/task/lock.c
     kernel/task/thread.c
     kernel/task/switch.asm
