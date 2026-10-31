@@ -62,6 +62,7 @@ add_executable(kernel.elf
     kernel/task/process.c
     kernel/syscall/switch.asm
     kernel/syscall/syscall.c
+    kernel/fs/vfs.c
     ${BUILD_DIR}/initBin.o
 )
 
