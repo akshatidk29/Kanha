@@ -6,6 +6,8 @@
 #include "task/thread.h"
 #include "task/process.h"
 #include "task/scheduler.h"
+#include "fs/vfs.h"
+#include "lib/string.h"
 
 static int sysWrite(int fd, const char *buf, uint32_t len) {
 
@@ -48,6 +50,45 @@ static int sysRead(int fd, char *buf, uint32_t len) {
     }
 
     return -1; 
+}
+
+static int sysSpawn(const char* path){
+    struct VfsNode* node = vfsOpen(path);
+
+    if(!node || node->type != REGULAR)
+        return -1;
+    struct Process* proc = processCreate(node->deviceData, node->size);
+    return proc ? proc->pid : -1;
+}
+
+static int sysReadDir(const char* path, char* buf, uint32_t maxLen){
+    
+    struct VfsNode* node = vfsOpen(path);
+
+    if(!node || node->type != DIR || !buf || maxLen == 0)
+        return -1;
+    
+    uint32_t i = 0;
+    uint32_t offset = 0;
+
+    while(1){
+
+        struct VfsNode* entry = vfsReadDir(node, i);
+
+        if(!entry)
+            break;
+        
+        size_t nlen = strlen(entry->name);
+        if (offset + nlen + 2 >= maxLen)
+            break;
+
+        memcpy(buf + offset, entry->name, nlen);
+        offset += nlen;
+        buf[offset++] = '\n';
+        i++;
+    }
+    buf[offset] = '\0';
+    return (int)i;
 }
 
 void syscallHandler(struct SyscallFrame *frame) {
@@ -97,6 +138,24 @@ void syscallHandler(struct SyscallFrame *frame) {
             uint32_t len = (uint32_t)frame->edx;
             frame->eax = sysRead(fd, buf, len);
             break;
+        }
+
+        case SYS_SPAWN: {
+            const char *path = (const char*)frame->ebx;
+            if(!path){
+                frame->eax = -1;
+                break;
+            }
+            frame->eax = sysSpawn(path);
+            break; 
+        }
+
+        case SYS_READDIR: {
+            const char *path = (const char*)frame->ebx;
+            char *buf = (char *)frame->ecx;
+            uint32_t maxLen = (uint32_t)frame->edx;
+            frame->eax = sysReadDir(path, buf, maxLen);
+            break; 
         }
 
         default: {

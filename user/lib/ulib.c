@@ -45,3 +45,11 @@ void yield(void) {
 void sleep(uint32_t ms) {
     syscall1(SYS_SLEEP, (int)ms);
 }
+
+int spawn(const char *path) {
+    return syscall1(SYS_SPAWN, (int)path);
+}
+
+int readdir(const char *path, char *buf, size_t maxLen) {
+    return syscall3(SYS_READDIR, (int)path, (int)buf, (int)maxLen);
+}
