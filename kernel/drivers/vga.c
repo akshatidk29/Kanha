@@ -218,6 +218,25 @@ void vgaPutInt64(int64_t n){
     }
 }
 
+void vgaPutHex(uint32_t num){
+    if(num == 0){
+        vgaPutChar('0');
+        return;
+    }
+
+    char hexDigits[] = "0123456789ABCDEF";
+    char buffer[9];
+    int i = 0;
+
+    while(num != 0){
+        buffer[i++] = hexDigits[num & 0x0F];
+        num >>= 4;
+    }
+
+    while(--i >= 0){
+        vgaPutChar(buffer[i]);
+    }
+}
 
 void vgaWrite(const char* c){
     while(*c != '\0'){

@@ -17,9 +17,11 @@
 #include "task/thread.h"
 #include "task/scheduler.h"
 #include "task/process.h"
+#include "fs/vfs.h"
+#include "fs/tarfs.h"
 
-extern uint8_t _binary_init_bin_start[];
-extern uint8_t _binary_init_bin_end[];
+extern uint8_t _binary_initrd_tar_start[];
+extern uint8_t _binary_initrd_tar_end[];
 
 volatile uint32_t ticks;
 
@@ -194,10 +196,9 @@ void kernelMain(struct BootInfo *bootInfo){
     kprintf("Akshat Mittal from Main Thread\n");
     kprintf("Global Counter: %d\n", globalCounter);
 
-    // Launch compiled C User Process
-    uint32_t initSize = (uint32_t)(_binary_init_bin_end - _binary_init_bin_start);
-    kprintf("Launching User C Process\n");
-    processCreate(_binary_init_bin_start, initSize);
+    // Mount Ramdisk
+    size_t initrdSize = (size_t)(_binary_initrd_tar_end - _binary_initrd_tar_start);
+    tarfsInitialize(_binary_initrd_tar_start, initrdSize);
 
     while (1) {
         __asm__ volatile("hlt");

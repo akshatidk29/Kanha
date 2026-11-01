@@ -26,11 +26,14 @@ add_custom_command(
 )
 
 add_custom_command(
-    OUTPUT ${BUILD_DIR}/initBin.o
-    COMMAND ld -m elf_i386 -r -b binary -o ${BUILD_DIR}/initBin.o init.bin
+    OUTPUT ${BUILD_DIR}/initrd.o
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${BUILD_DIR}/initrd_root/bin
+    COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/init.bin ${BUILD_DIR}/initrd_root/bin/init
+    COMMAND tar -cf ${BUILD_DIR}/initrd.tar -C ${BUILD_DIR}/initrd_root bin
+    COMMAND ld -m elf_i386 -r -b binary -o ${BUILD_DIR}/initrd.o initrd.tar
     WORKING_DIRECTORY ${BUILD_DIR}
     DEPENDS ${BUILD_DIR}/init.bin
-    COMMENT "Converting init.bin to initBin.o"
+    COMMENT "Packaging initrd.tar and converting to initrd.o"
 )
 
 add_executable(kernel.elf
@@ -63,7 +66,8 @@ add_executable(kernel.elf
     kernel/syscall/switch.asm
     kernel/syscall/syscall.c
     kernel/fs/vfs.c
-    ${BUILD_DIR}/initBin.o
+    kernel/fs/tarfs.c
+    ${BUILD_DIR}/initrd.o
 )
 
 target_include_directories(kernel.elf 

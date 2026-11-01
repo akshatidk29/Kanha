@@ -16,6 +16,8 @@ void vgaWrite(const char* c);
 void vgaPutInt(int32_t n);
 void vgaPutInt64(int64_t n);
 
+void vgaPutHex(uint32_t num);
+
 void vgaPutUnsignedInt(uint32_t n);
 void vgaPutUnsignedInt64(uint64_t n);
 
