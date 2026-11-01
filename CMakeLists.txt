@@ -13,27 +13,66 @@ set(CMAKE_EXE_LINKER_FLAGS "-no-pie -nostdlib -Wl,-m,elf_i386 -Wl,-T,${CMAKE_SOU
 
 set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
+# Compile common user runtime libraries 
 add_custom_command(
-    OUTPUT ${BUILD_DIR}/init.bin
-    COMMAND nasm -f elf32 ${CMAKE_SOURCE_DIR}/user/lib/crt0.asm -o ${BUILD_DIR}/crt0.o
-    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/bin/init.c -o ${BUILD_DIR}/init.o
-    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/lib/stdio.c -o ${BUILD_DIR}/stdio.o
-    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/lib/ulib.c -o ${BUILD_DIR}/ulib.o
-    COMMAND ld -m elf_i386 -T ${CMAKE_SOURCE_DIR}/user/lib/user.ld -no-pie ${BUILD_DIR}/crt0.o ${BUILD_DIR}/init.o ${BUILD_DIR}/stdio.o ${BUILD_DIR}/ulib.o -o ${BUILD_DIR}/init.elf
-    COMMAND objcopy -O binary ${BUILD_DIR}/init.elf ${BUILD_DIR}/init.bin
-    DEPENDS ${CMAKE_SOURCE_DIR}/user/lib/crt0.asm ${CMAKE_SOURCE_DIR}/user/bin/init.c ${CMAKE_SOURCE_DIR}/user/lib/stdio.c ${CMAKE_SOURCE_DIR}/user/lib/ulib.c ${CMAKE_SOURCE_DIR}/user/lib/user.ld
-    COMMENT "Building user init.bin"
+    OUTPUT ${BUILD_DIR}/userCrt0.o
+    COMMAND nasm -f elf32 ${CMAKE_SOURCE_DIR}/user/lib/crt0.asm -o ${BUILD_DIR}/userCrt0.o
+    DEPENDS ${CMAKE_SOURCE_DIR}/user/lib/crt0.asm
+    COMMENT "Building user crt0.o"
 )
 
 add_custom_command(
+    OUTPUT ${BUILD_DIR}/userStdio.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/lib/stdio.c -o ${BUILD_DIR}/userStdio.o
+    DEPENDS ${CMAKE_SOURCE_DIR}/user/lib/stdio.c ${CMAKE_SOURCE_DIR}/user/lib/stdio.h
+    COMMENT "Building user stdio.o"
+)
+
+add_custom_command(
+    OUTPUT ${BUILD_DIR}/userUlib.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/lib/ulib.c -o ${BUILD_DIR}/userUlib.o
+    DEPENDS ${CMAKE_SOURCE_DIR}/user/lib/ulib.c ${CMAKE_SOURCE_DIR}/user/lib/ulib.h
+    COMMENT "Building user ulib.o"
+)
+
+add_custom_command(
+    OUTPUT ${BUILD_DIR}/userString.o
+    COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/lib/string.c -o ${BUILD_DIR}/userString.o
+    DEPENDS ${CMAKE_SOURCE_DIR}/user/lib/string.c ${CMAKE_SOURCE_DIR}/user/lib/string.h
+    COMMENT "Building user string.o"
+)
+
+set(USER_COMMON_OBJS
+    ${BUILD_DIR}/userCrt0.o
+    ${BUILD_DIR}/userStdio.o
+    ${BUILD_DIR}/userUlib.o
+    ${BUILD_DIR}/userString.o
+)
+
+macro(build_user_program name)
+    add_custom_command(
+        OUTPUT ${BUILD_DIR}/initrdRoot/bin/${name}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${BUILD_DIR}/initrdRoot/bin
+        COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/bin/${name}.c -o ${BUILD_DIR}/${name}.o
+        COMMAND ld -m elf_i386 -T ${CMAKE_SOURCE_DIR}/user/lib/user.ld -no-pie ${USER_COMMON_OBJS} ${BUILD_DIR}/${name}.o -o ${BUILD_DIR}/${name}.elf
+        COMMAND objcopy -O binary ${BUILD_DIR}/${name}.elf ${BUILD_DIR}/initrdRoot/bin/${name}
+        DEPENDS ${CMAKE_SOURCE_DIR}/user/bin/${name}.c ${USER_COMMON_OBJS} ${CMAKE_SOURCE_DIR}/user/lib/user.ld
+        COMMENT "Building user program ${name}"
+    )
+    list(APPEND USER_PROGRAMS ${BUILD_DIR}/initrdRoot/bin/${name})
+endmacro()
+
+# User programs compilation
+build_user_program(init)
+
+# Package all user binaries into initrd.tar and convert to initrd.o
+add_custom_command(
     OUTPUT ${BUILD_DIR}/initrd.o
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${BUILD_DIR}/initrd_root/bin
-    COMMAND ${CMAKE_COMMAND} -E copy ${BUILD_DIR}/init.bin ${BUILD_DIR}/initrd_root/bin/init
-    COMMAND tar -cf ${BUILD_DIR}/initrd.tar -C ${BUILD_DIR}/initrd_root bin
+    COMMAND tar -cf ${BUILD_DIR}/initrd.tar -C ${BUILD_DIR}/initrdRoot bin
     COMMAND ld -m elf_i386 -r -b binary -o ${BUILD_DIR}/initrd.o initrd.tar
     WORKING_DIRECTORY ${BUILD_DIR}
-    DEPENDS ${BUILD_DIR}/init.bin
-    COMMENT "Packaging initrd.tar and converting to initrd.o"
+    DEPENDS ${USER_PROGRAMS}
+    COMMENT "Packaging initrd.tar with user binaries and converting to initrd.o"
 )
 
 add_executable(kernel.elf

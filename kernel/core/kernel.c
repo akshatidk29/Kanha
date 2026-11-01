@@ -71,18 +71,9 @@ void printE820(struct BootInfo *bootInfo){
 
 static void testPaging(void){
 
-    vgaWrite("TOTAL FRAMES: ");
-    vgaPutUnsignedInt(pmmTotalFramesCount());
-    vgaPutChar('\n');
-
-    vgaWrite("FREE FRAMES: ");
-    vgaPutUnsignedInt(pmmFreeFramesCount());
-    vgaPutChar('\n');
-
-    vgaWrite("RESERVED FRAMES: ");
-    vgaPutUnsignedInt(pmmReservedFramesCount());
-    vgaPutChar('\n');
-    vgaPutChar('\n');
+    kprintf("TOTAL FRAMES: %d\n", pmmTotalFramesCount());
+    kprintf("FREE FRAMES: %d\n", pmmFreeFramesCount());
+    kprintf("RESERVED FRAMES: %d\n\n", pmmReservedFramesCount());
 
     uint32_t before = pmmFreeFramesCount();
     uint32_t frame = pmmAllocateFrame();
@@ -102,7 +93,7 @@ static void testPaging(void){
     if (pmmFreeFramesCount() != before)
         kernelPanic("PMM free count incorrect after deallocation");
 
-    vgaWrite("PMM Tests Passed\n");
+    kprintf("PMM Tests Passed\n");
 }
 
 static void testHeap(void){
@@ -136,7 +127,7 @@ static void testHeap(void){
         kernelPanic("Coalescing failed\n");
     }
 
-    vgaWrite("Heap Tests Passed\n");
+    kprintf("Heap Tests Passed\n");
 }
 
 void* func(int count){
@@ -199,6 +190,13 @@ void kernelMain(struct BootInfo *bootInfo){
     // Mount Ramdisk
     size_t initrdSize = (size_t)(_binary_initrd_tar_end - _binary_initrd_tar_start);
     tarfsInitialize(_binary_initrd_tar_start, initrdSize);
+
+    // Launch initial user process
+    struct VfsNode *initProc = vfsOpen("/bin/init");
+
+    if (initProc) {
+        processCreate((uint8_t *)initProc->deviceData, initProc->size);
+    }
 
     while (1) {
         __asm__ volatile("hlt");
