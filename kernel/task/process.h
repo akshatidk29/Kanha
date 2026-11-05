@@ -26,10 +26,15 @@ struct Process {
 };
 
 
+struct SyscallFrame;
+
 void processInitialize(void);
 struct Process *currentProcess(void);
 
 struct Process *processCreate(const uint8_t *code, uint32_t codeSize);
+struct Process *processFork(struct SyscallFrame *parentFrame);
+int processExec(struct SyscallFrame *frame, const char *path);
+
 void processExit(int exitCode);
 
 #endif

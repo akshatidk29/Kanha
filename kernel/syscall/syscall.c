@@ -61,6 +61,21 @@ static int sysSpawn(const char* path){
     return proc ? proc->pid : -1;
 }
 
+static int sysFork(struct SyscallFrame *frame) {
+    struct Process *child = processFork(frame);
+    if (!child) {
+        return -1;
+    }
+    return (int)child->pid; 
+}
+
+static int sysExec(struct SyscallFrame *frame){
+    const char *path = (const char *)frame->ebx;
+    if(!path)
+        return -1;
+    return processExec(frame, path);
+}
+
 static int sysReadDir(const char* path, char* buf, uint32_t maxLen){
     
     struct VfsNode* node = vfsOpen(path);
@@ -156,6 +171,16 @@ void syscallHandler(struct SyscallFrame *frame) {
             uint32_t maxLen = (uint32_t)frame->edx;
             frame->eax = sysReadDir(path, buf, maxLen);
             break; 
+        }
+
+        case SYS_FORK: {
+            frame->eax = sysFork(frame);
+            break;
+        }
+
+        case SYS_EXEC: {
+            frame->eax = sysExec(frame);
+            break;
         }
 
         default: {

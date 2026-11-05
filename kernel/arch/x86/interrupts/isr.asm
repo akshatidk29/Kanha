@@ -12,6 +12,8 @@ global isr36
 global isr44
 global isr128
 
+global forkReturn
+
 extern exceptionHandlerDivideByZero
 extern exceptionHandlerDoubleFault
 extern exceptionHandlerGPF
@@ -100,6 +102,14 @@ isr128:
     call syscallHandler
     
     add esp, 4
+    popa
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    iret
+
+forkReturn:                                 ; When scheduler switches to the child process for first time.
     popa
     pop gs
     pop fs

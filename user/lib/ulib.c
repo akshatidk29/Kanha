@@ -50,6 +50,14 @@ int spawn(const char *path) {
     return syscall1(SYS_SPAWN, (int)path);
 }
 
+int fork(void) {
+    return syscall0(SYS_FORK);
+}
+
+int exec(const char *path) {
+    return syscall1(SYS_EXEC, (int)path);
+}
+
 int readdir(const char *path, char *buf, size_t maxLen) {
     return syscall3(SYS_READDIR, (int)path, (int)buf, (int)maxLen);
 }

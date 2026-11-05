@@ -8,4 +8,7 @@
 #define SYS_READ    5
 #define SYS_SPAWN   6
 #define SYS_READDIR 7
-#endif
+#define SYS_FORK    8
+#define SYS_EXEC    9
+ 
+#endif 
