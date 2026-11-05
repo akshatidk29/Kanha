@@ -64,6 +64,7 @@ endmacro()
 
 # User programs compilation
 build_user_program(init)
+build_user_program(shell)
 
 # Package all user binaries into initrd.tar and convert to initrd.o
 add_custom_command(

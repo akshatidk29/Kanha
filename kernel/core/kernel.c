@@ -170,29 +170,15 @@ void kernelMain(struct BootInfo *bootInfo){
     picClearMask(1);          // Unmask Keyboard
     picClearMask(4);          // Unmask Serial
     enableInterrupts();
-    
-    testPaging();
-    testHeap();
-    
     schedulerInitialize();
 
-    int count = 1000000;
-    spinLockInit(&lock);
-    threadCreate((void(*)(void*))func, (void*)(count));
-    threadCreate((void(*)(void*))func, (void*)(count));
-    threadCreate((void(*)(void*))func, (void*)(count));
-
-    threadSleep(2000);
-
-    kprintf("Akshat Mittal from Main Thread\n");
-    kprintf("Global Counter: %d\n", globalCounter);
 
     // Mount Ramdisk
     size_t initrdSize = (size_t)(_binary_initrd_tar_end - _binary_initrd_tar_start);
     tarfsInitialize(_binary_initrd_tar_start, initrdSize);
 
     // Launch initial user process
-    struct VfsNode *initProc = vfsOpen("/bin/init");
+    struct VfsNode *initProc = vfsOpen("/bin/shell");
 
     if (initProc) {
         processCreate((uint8_t *)initProc->deviceData, initProc->size);
