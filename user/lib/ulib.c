@@ -58,6 +58,14 @@ int exec(const char *path) {
     return syscall1(SYS_EXEC, (int)path);
 }
 
+int waitpid(int pid, int *status, int options) {
+    return syscall3(SYS_WAITPID, pid, (int)status, options);
+}
+
+int wait(int *status) {
+    return waitpid(-1, status, 0);
+}
+
 int readDir(const char *path, char *buf, size_t maxLen) {
     return syscall3(SYS_READDIR, (int)path, (int)buf, (int)maxLen);
 }

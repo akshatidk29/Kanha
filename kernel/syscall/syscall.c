@@ -180,6 +180,14 @@ void syscallHandler(struct SyscallFrame *frame) {
             break;
         }
 
+        case SYS_WAITPID: {
+            int pid = (int)frame->ebx;
+            int *status = (int *)frame->ecx;
+            int options = (int)frame->edx;
+            frame->eax = processWaitPid(pid, status, options);
+            break;
+        }
+
         default: {
             kprintf("Unknown Syscall number: %d\n", syscallNumber);
             frame->eax = -1;

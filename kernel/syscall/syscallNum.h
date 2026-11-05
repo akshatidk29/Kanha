@@ -10,5 +10,6 @@
 #define SYS_READDIR 7
 #define SYS_FORK    8
 #define SYS_EXEC    9
+#define SYS_WAITPID 10
  
 #endif 

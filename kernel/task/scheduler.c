@@ -29,14 +29,14 @@ void readyThreadsPush(struct Thread *thread) {
     
     uint32_t flags = disableInterrupts();
     
-    thread->next = NULL;
+    thread->schedNext = NULL;
     thread->state = THREAD_READY;
 
     if (!readyHead) {
         readyHead = thread;
         readyTail = thread;
     } else {
-        readyTail->next = thread;
+        readyTail->schedNext = thread;
         readyTail = thread;
     }
 
@@ -47,13 +47,13 @@ void sleepThreadsPush(struct Thread *thread) {
     
     uint32_t flags = disableInterrupts();
     
-    thread->next = NULL;
+    thread->schedNext = NULL;
 
     if (!sleepHead) {
         sleepHead = thread;
         sleepTail = thread;
     } else {
-        sleepTail->next = thread;
+        sleepTail->schedNext = thread;
         sleepTail = thread;
     }
 
@@ -64,21 +64,23 @@ static struct Thread *readyThreadsPop(void) {
 
     uint32_t flags = disableInterrupts();
     
-    if (!readyHead) {
-        restoreInterrupts(flags);
-        return NULL;
+    while (readyHead) {
+        struct Thread *t = readyHead;
+        readyHead = readyHead->schedNext;
+
+        if (!readyHead) 
+            readyTail = NULL;
+
+        t->schedNext = NULL;
+
+        if (t->state != THREAD_TERMINATED) {
+            restoreInterrupts(flags);
+            return t;
+        }
     }
 
-    struct Thread *t = readyHead;
-    readyHead = readyHead->next;
-
-    if (!readyHead) 
-        readyTail = NULL;
-
-    t->next = NULL;
-
     restoreInterrupts(flags);
-    return t;
+    return NULL;
 }
 
 void yield(void) {
@@ -128,20 +130,22 @@ void schedulerTimer(void){
             struct Thread* wakeUpThread = current;
 
             if(previous != NULL){
-                previous->next = current->next;
+                previous->schedNext = current->schedNext;
             }else{
-                sleepHead = current->next;
+                sleepHead = current->schedNext;
             }
 
             if(current == sleepTail){
                 sleepTail = previous;
             }
 
-            current = current->next;
-            readyThreadsPush(wakeUpThread);
+            current = current->schedNext;
+            if (wakeUpThread->state != THREAD_TERMINATED) {
+                readyThreadsPush(wakeUpThread);
+            }
         } else {
             previous = current;
-            current = current->next;
+            current = current->schedNext;
         }
     }
 

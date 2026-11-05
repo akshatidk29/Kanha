@@ -7,16 +7,82 @@
 #include "fs/vfs.h"
 #include "syscall/syscall.h"
 #include "task/scheduler.h"
+#include "task/lock.h"
 
 extern void jumpToUserMode(uint32_t userIp, uint32_t userSp);
 
 static uint32_t nextPid = 1;
 static struct Process kernelProcess;
 
-void processInitialize(void){
+static volatile int processCount = 0;
+struct Process *processTable[MAX_PROCESSES];
+
+SpinLock processTableLock;
+
+static int addProcess(struct Process *proc) {
+    if (!proc)
+        return -1;
+
+    spinLockAcquire(&processTableLock);
+    if (processCount >= MAX_PROCESSES) {
+        spinLockRelease(&processTableLock);
+        return -1;
+    }
+
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        if (processTable[i] == NULL) {
+            processTable[i] = proc;
+            processCount++;
+            spinLockRelease(&processTableLock);
+            return 0;
+        }
+    }
+
+    spinLockRelease(&processTableLock);
+    return -1;
+}
+
+static int removeProcess(struct Process *proc) {
+    if (!proc)
+        return -1;
+
+    spinLockAcquire(&processTableLock);
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        if (processTable[i] == proc) {
+            processTable[i] = NULL;
+            processCount--;
+            spinLockRelease(&processTableLock);
+            return 0;
+        }
+    }
+
+    spinLockRelease(&processTableLock);
+    return -1;
+}
+
+struct Process *processFindByPid(uint32_t pid) {
+    spinLockAcquire(&processTableLock);
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        if (processTable[i] && processTable[i]->pid == pid) {
+            struct Process *proc = processTable[i];
+            spinLockRelease(&processTableLock);
+            return proc;
+        }
+    }
+    spinLockRelease(&processTableLock);
+    return NULL;
+}
+
+void processInitialize(void) {
+    spinLockInit(&processTableLock);
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        processTable[i] = NULL;
+    }
+    processCount = 0;
+
     kernelProcess.pid = 0;
     kernelProcess.state = PROCESS_RUNNING;
-    kernelProcess.exitCode = 0; 
+    kernelProcess.exitCode = 0;     
 
     kernelProcess.addressSpace.pageDirectory = getKernelPageDirectory();
     kernelProcess.entryPoint = 0;
@@ -24,11 +90,19 @@ void processInitialize(void){
 
     struct Thread *mainThread = scheduledThread();
     kernelProcess.mainThread = mainThread;
-    mainThread->process = &kernelProcess;
+    kernelProcess.threadList = mainThread;
+    kernelProcess.threadCount = 1;
+    kernelProcess.parent = NULL;
+
+    if (mainThread) {
+        mainThread->process = &kernelProcess;
+        mainThread->procNext = NULL;
+    }
+
+    addProcess(&kernelProcess);
 }
 
 static void processEntry(void *arg) { 
-
     struct Process *proc = (struct Process *)arg;
 
     switchAddressSpace(&proc->addressSpace);
@@ -36,9 +110,15 @@ static void processEntry(void *arg) {
 }
 
 struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
-
     if (!code || codeSize == 0 || codeSize > PAGE_SIZE)
         return NULL;
+
+    spinLockAcquire(&processTableLock);
+    if (processCount >= MAX_PROCESSES) {
+        spinLockRelease(&processTableLock);
+        return NULL;
+    }
+    spinLockRelease(&processTableLock);
 
     struct Process *proc = (struct Process *)kMalloc(sizeof(struct Process));
     if (!proc)
@@ -47,6 +127,7 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
     proc->pid = nextPid++;
     proc->state = PROCESS_CREATED;
     proc->exitCode = 0;
+    proc->parent = currentProcess();
 
     // Private AddressSpace
     if (createAddressSpace(&proc->addressSpace) != 0) {
@@ -104,23 +185,67 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
         return NULL;
     }
 
+    // Detach from currentProcess if threadCreate attached it
+    struct Process *curr = currentProcess();
+    if (curr && curr != proc) {
+        if (curr->threadList == thread) {
+            curr->threadList = thread->procNext;
+        } else {
+            struct Thread *p = curr->threadList;
+            while (p && p->procNext != thread) {
+                p = p->procNext;
+            }
+            if (p) {
+                p->procNext = thread->procNext;
+            }
+        }
+        if (curr->threadCount > 0) {
+            curr->threadCount--;
+        }
+    }
+
     thread->process = proc;
+    thread->procNext = NULL;
     proc->mainThread = thread;
+    proc->threadList = thread;
+    proc->threadCount = 1;
     proc->state = PROCESS_RUNNING;
+
+    if (addProcess(proc) != 0) {
+        thread->state = THREAD_TERMINATED;
+        pmmDeallocateFrame(stackPhys);
+        pmmDeallocateFrame(codePhys);
+        destroyAddressSpace(&proc->addressSpace);
+        kFree(proc);
+        return NULL;
+    }
 
     return proc;
 }
 
-struct Process *processFork(struct SyscallFrame *parentFrame){
+struct Process *processFork(struct SyscallFrame *parentFrame) {
+    if (!parentFrame)
+        return NULL;
+
+    spinLockAcquire(&processTableLock);
+    if (processCount >= MAX_PROCESSES) {
+        spinLockRelease(&processTableLock);
+        return NULL;
+    }
+    spinLockRelease(&processTableLock);
 
     struct Process *parentProc = currentProcess();
+    if (!parentProc)
+        return NULL;
+
     struct Process *childProc = (struct Process *)kMalloc(sizeof(struct Process));
-    if(!childProc)
+    if (!childProc)
         return NULL;
 
     childProc->pid = nextPid++;
     childProc->state = PROCESS_CREATED;
     childProc->exitCode = 0;
+    childProc->parent = parentProc;
 
     // Private AddressSpace
     if (createAddressSpace(&childProc->addressSpace) != 0) {
@@ -130,21 +255,41 @@ struct Process *processFork(struct SyscallFrame *parentFrame){
 
     // Map User Code Page
     uint32_t childCodePhys = pmmAllocateFrame();
-    if(addressSpaceMapPage(&childProc->addressSpace, 0x00400000, childCodePhys, PAGE_USER | PAGE_WRITABLE) != 0){
+    if (!childCodePhys) {
+        destroyAddressSpace(&childProc->addressSpace);
+        kFree(childProc);
+        return NULL;
+    }
+
+    if (addressSpaceMapPage(&childProc->addressSpace, 0x00400000, childCodePhys, PAGE_USER | PAGE_WRITABLE) != 0) {
         pmmDeallocateFrame(childCodePhys);
         destroyAddressSpace(&childProc->addressSpace);
         kFree(childProc);
         return NULL;
     }
 
-    uint32_t parentCodePhys;
+    uint32_t parentCodePhys = 0;
     addressSpaceGetPhysicalAddress(&parentProc->addressSpace, 0x00400000, &parentCodePhys);
     memcpy((void *)PHYS_TO_VIRT(childCodePhys), (void *)PHYS_TO_VIRT(parentCodePhys), PAGE_SIZE);
     
+    // Map User Stack Page
     uint32_t childStackPhys = pmmAllocateFrame();
-    addressSpaceMapPage(&childProc->addressSpace, 0x00800000, childStackPhys, PAGE_USER | PAGE_WRITABLE);
+    if (!childStackPhys) {
+        pmmDeallocateFrame(childCodePhys);
+        destroyAddressSpace(&childProc->addressSpace);
+        kFree(childProc);
+        return NULL;
+    }
 
-    uint32_t parentStackPhys;
+    if (addressSpaceMapPage(&childProc->addressSpace, 0x00800000, childStackPhys, PAGE_USER | PAGE_WRITABLE) != 0) {
+        pmmDeallocateFrame(childStackPhys);
+        pmmDeallocateFrame(childCodePhys);
+        destroyAddressSpace(&childProc->addressSpace);
+        kFree(childProc);
+        return NULL;
+    }
+
+    uint32_t parentStackPhys = 0;
     addressSpaceGetPhysicalAddress(&parentProc->addressSpace, 0x00800000, &parentStackPhys);
     memcpy((void *)PHYS_TO_VIRT(childStackPhys), (void *)PHYS_TO_VIRT(parentStackPhys), PAGE_SIZE);
 
@@ -154,8 +299,8 @@ struct Process *processFork(struct SyscallFrame *parentFrame){
 
     void *kstack = kMalloc(STACK_SIZE);
     if (!kstack) {
-        pmmDeallocateFrame(childCodePhys);
         pmmDeallocateFrame(childStackPhys);
+        pmmDeallocateFrame(childCodePhys);
         destroyAddressSpace(&childProc->addressSpace);
         kFree(childProc);
         return NULL;
@@ -163,11 +308,11 @@ struct Process *processFork(struct SyscallFrame *parentFrame){
 
     struct Thread *childThread = (struct Thread *)kMalloc(sizeof(struct Thread));
     if (!childThread) {
-        pmmDeallocateFrame(childCodePhys);
         pmmDeallocateFrame(childStackPhys);
+        pmmDeallocateFrame(childCodePhys);
         destroyAddressSpace(&childProc->addressSpace);
-        kFree(childProc);
         kFree(kstack);
+        kFree(childProc);
         return NULL;
     }
 
@@ -175,7 +320,8 @@ struct Process *processFork(struct SyscallFrame *parentFrame){
     childThread->sleepTime = 0;
     childThread->kernelStack = kstack;
     childThread->process = childProc;
-    childThread->next = NULL;
+    childThread->schedNext = NULL;
+    childThread->procNext = NULL;
 
     uint8_t *stackTop = (uint8_t *)kstack + STACK_SIZE;
     
@@ -194,30 +340,56 @@ struct Process *processFork(struct SyscallFrame *parentFrame){
 
     childThread->stackPointer = sp;
     childProc->mainThread = childThread;
+    childProc->threadList = childThread;
+    childProc->threadCount = 1;
     childProc->state = PROCESS_RUNNING;
+
+    if (addProcess(childProc) != 0) {
+        kFree(childThread);
+        kFree(kstack);
+        pmmDeallocateFrame(childStackPhys);
+        pmmDeallocateFrame(childCodePhys);
+        destroyAddressSpace(&childProc->addressSpace);
+        kFree(childProc);
+        return NULL;
+    }
+
     readyThreadsPush(childThread);
     return childProc;
 }
 
-int processExec(struct SyscallFrame *frame, const char *path){
-    
-    if(!frame || !path)
+int processExec(struct SyscallFrame *frame, const char *path) {
+    if (!frame || !path)
         return -1;
 
     struct VfsNode *node = vfsOpen(path);
-    if(!node || node->type != REGULAR)
+    if (!node || node->type != REGULAR || node->size > PAGE_SIZE)
         return -1;
 
     struct Process *proc = currentProcess();
-    if(!proc)
+    if (!proc)
         return -1;
-        
-    uint32_t codePhys;
+
+    // Terminate all sibling threads
+    struct Thread *curr = scheduledThread();
+    struct Thread *t = proc->threadList;
+    while (t) {
+        if (t != curr) {
+            t->state = THREAD_TERMINATED;
+        }
+        t = t->procNext;
+    }
+    proc->mainThread = curr;
+    proc->threadList = curr;
+    curr->procNext = NULL;
+    proc->threadCount = 1;
+
+    uint32_t codePhys = 0;
     addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00400000, &codePhys);
     memset((void *)PHYS_TO_VIRT(codePhys), 0, PAGE_SIZE);
     memcpy((void *)PHYS_TO_VIRT(codePhys), node->deviceData, node->size);
 
-    uint32_t stackPhys;
+    uint32_t stackPhys = 0;
     addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00800000, &stackPhys);
     memset((void *)PHYS_TO_VIRT(stackPhys), 0, PAGE_SIZE);
 
@@ -243,9 +415,114 @@ struct Process *currentProcess(void) {
 
 void processExit(int exitCode) {
     struct Process *proc = currentProcess();
-    if (proc) {
-        proc->state = PROCESS_TERMINATED;
-        proc->exitCode = exitCode;
+    if (!proc || proc->state == PROCESS_TERMINATED) {
+        threadExit();
+        return;
     }
+
+    proc->exitCode = exitCode;
+    proc->state = PROCESS_TERMINATED;
+
+    struct Thread *curr = scheduledThread();
+    struct Thread *t = proc->threadList;
+    while (t) {
+        if (t != curr) {
+            t->state = THREAD_TERMINATED;
+        }
+        t = t->procNext;
+    }
+
     threadExit();
+}
+
+int processWaitPid(int pid, int *status, int options) {
+    
+    struct Process *parent = currentProcess();
+    if (!parent)
+        return -1;
+
+    while (1) {
+        int hasChildren = 0;
+        struct Process *target = NULL;
+
+        spinLockAcquire(&processTableLock);
+        if (pid > 0) {
+            for (int i = 0; i < MAX_PROCESSES; i++) {
+                if (processTable[i] && processTable[i]->pid == (uint32_t)pid && processTable[i]->parent == parent) {
+                    hasChildren = 1;
+                    if (processTable[i]->state == PROCESS_TERMINATED) {
+                        target = processTable[i];
+                    }
+                    break;
+                }
+            }
+        } else if (pid == -1) {
+            for (int i = 0; i < MAX_PROCESSES; i++) {
+                if (processTable[i] && processTable[i]->parent == parent) {
+                    hasChildren = 1;
+                    if (processTable[i]->state == PROCESS_TERMINATED) {
+                        target = processTable[i];
+                        break;
+                    }
+                }
+            }
+        } else {
+            spinLockRelease(&processTableLock);
+            return -1;
+        }
+
+        if (!hasChildren) {
+            spinLockRelease(&processTableLock);
+            return -1;
+        }
+
+        if (target) {
+            int childPid = (int)target->pid;
+            int childExitCode = target->exitCode;
+
+            for (int i = 0; i < MAX_PROCESSES; i++) {
+                if (processTable[i] == target) {
+                    processTable[i] = NULL;
+                    processCount--;
+                    break;
+                }
+            }
+            spinLockRelease(&processTableLock);
+
+            if (status) {
+                *status = childExitCode;
+            }
+
+            uint32_t codePhys = 0;
+            if (addressSpaceGetPhysicalAddress(&target->addressSpace, 0x00400000, &codePhys) == 0 && codePhys) {
+                pmmDeallocateFrame(codePhys);
+            }
+            uint32_t stackPhys = 0;
+            if (addressSpaceGetPhysicalAddress(&target->addressSpace, 0x00800000, &stackPhys) == 0 && stackPhys) {
+                pmmDeallocateFrame(stackPhys);
+            }
+            destroyAddressSpace(&target->addressSpace);
+
+            struct Thread *t = target->threadList;
+            while (t) {
+                struct Thread *nextT = t->procNext;
+                if (t->kernelStack) {
+                    kFree(t->kernelStack);
+                }
+                kFree(t);
+                t = nextT;
+            }
+
+            kFree(target);
+            return childPid;
+        }
+
+        spinLockRelease(&processTableLock);
+
+        if (options & 1) {
+            return 0;
+        }
+
+        yield();
+    }
 }

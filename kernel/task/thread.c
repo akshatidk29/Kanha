@@ -23,7 +23,8 @@ struct Thread* threadInitialize(void) {
     mainThread->sleepTime = 0;
     mainThread->kernelStack = (void*)(BOOT_STACK_TOP - STACK_SIZE);
     mainThread->stackPointer = NULL;
-    mainThread->next = NULL;
+    mainThread->schedNext = NULL;
+    mainThread->procNext = NULL;
 
     mainThread->process = NULL;
     return mainThread;
@@ -44,8 +45,16 @@ struct Thread *threadCreate(void (*func)(void *), void *arg) {
     thread->tid = nextTid++;
     thread->sleepTime = 0;
     thread->kernelStack = stack;
+    thread->schedNext = NULL;
     thread->process = currentProcess();
-    
+    if (thread->process) {
+        thread->procNext = thread->process->threadList;
+        thread->process->threadList = thread;
+        thread->process->threadCount++;
+    } else {
+        thread->procNext = NULL;
+    }
+
     uint32_t *top = (uint32_t *)((uint8_t *)stack + STACK_SIZE);
 
     *(--top) = (uint32_t)arg;               
@@ -68,7 +77,16 @@ void threadExit(void) {
     
     struct Thread* currentThread = scheduledThread();
     currentThread->state = THREAD_TERMINATED;
-    
+
+    if (currentThread->process) {
+        if (currentThread->process->threadCount > 0) {
+            currentThread->process->threadCount--;
+        }
+        if (currentThread->process->threadCount == 0 && currentThread->process->state != PROCESS_TERMINATED) {
+            processExit(0);
+        }
+    }
+
     __asm__ volatile("sti");
     while (1) {
         yield();

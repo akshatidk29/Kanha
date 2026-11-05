@@ -18,7 +18,8 @@ int main(void) {
                     printf("Failed to execute /bin/init\n");
                 }
             }else{
-                sleep(5000);
+                int status = 0;
+                waitpid(id, &status, 0);
             }
         }else if(strcmp(cmd, "ls") == 0){
             char buffer[100];

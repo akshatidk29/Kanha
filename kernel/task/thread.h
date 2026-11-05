@@ -23,7 +23,8 @@ struct Thread{
     
     void *kernelStack;
     uint32_t *stackPointer;
-    struct Thread* next;
+    struct Thread* schedNext;
+    struct Thread* procNext;
 
     struct Process* process;  
 };
