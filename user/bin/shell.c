@@ -20,6 +20,10 @@ int main(void) {
             }else{
                 sleep(5000);
             }
+        }else if(strcmp(cmd, "ls") == 0){
+            char buffer[100];
+            readDir("/bin", buffer, 100);
+            printf("%s\n", buffer);
         }
     } 
     

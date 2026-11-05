@@ -58,6 +58,6 @@ int exec(const char *path) {
     return syscall1(SYS_EXEC, (int)path);
 }
 
-int readdir(const char *path, char *buf, size_t maxLen) {
+int readDir(const char *path, char *buf, size_t maxLen) {
     return syscall3(SYS_READDIR, (int)path, (int)buf, (int)maxLen);
 }

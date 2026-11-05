@@ -118,9 +118,6 @@ void syscallHandler(struct SyscallFrame *frame) {
             if (proc) {
                 kprintf("Process %d exited with code %d\n", proc->pid, status);
                 processExit(status);
-            } else {
-                kprintf("Thread %d exited with code %d\n", scheduledThread()->tid, status);
-                threadExit();
             }
             break;
         }
