@@ -4,13 +4,13 @@
 #include "fs/tarfs.h"
 #include "lib/string.h"
 #include "lib/kprintf.h"
+#include "mm/heap.h"
 
 #define MAX_TAR_FILES 32
 
 static struct VfsNode tarRoot;
 static struct VfsNode tarBinDir;
 
-static struct VfsNode tarFiles[MAX_TAR_FILES];
 static size_t tarFileCount = 0;
 
 static int tarfsRead(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size) {
@@ -22,24 +22,13 @@ static int tarfsRead(struct VfsNode *node, uint32_t offset, uint8_t *buffer, siz
     return (int)toRead;
 }
 
-static struct VfsNode* tarfsFindDir(struct VfsNode *dir, const char *name) {
-
-    if (strcmp(name, "bin") == 0) {
-        return &tarBinDir;
-    }
-    for (size_t i = 0; i < tarFileCount; i++) {
-        if (strcmp(tarFiles[i].name, name) == 0) {
-            return &tarFiles[i];
-        }
-    }
-    return NULL;
-}
-
-static struct VfsNode* tarfsReadDir(struct VfsNode *dir, uint32_t idx) {
-    if (idx < tarFileCount) {
-        return &tarFiles[idx];
-    }
-    return NULL;
+static int tarfsWrite(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size) {
+    if (!node || !buffer || offset >= node->size) 
+        return 0;
+    
+    size_t toWrite = (size > node->size - offset) ? (node->size - offset) : size;
+    memcpy((uint8_t *)node->deviceData + offset, buffer, toWrite);
+    return (int)toWrite;
 }
 
 static uint32_t parseOctal(const char *str, size_t len) {
@@ -57,16 +46,24 @@ int tarfsInitialize(void *archiveAddress, size_t archiveSize) {
     memset(&tarRoot, 0, sizeof(tarRoot));
     strcpy(tarRoot.name, "/");
     tarRoot.type = DIR;
-    tarRoot.findDir = tarfsFindDir;
-    tarRoot.readDir = tarfsReadDir;
-    vfsRoot = &tarRoot;
 
     // Initialize "/bin" directory 
     memset(&tarBinDir, 0, sizeof(tarBinDir));
     strcpy(tarBinDir.name, "bin");
     tarBinDir.type = DIR;
-    tarBinDir.findDir = tarfsFindDir;
-    tarBinDir.readDir = tarfsReadDir;
+
+    vfsRoot = &tarRoot;
+
+    // Initialize root children list
+    tarRoot.firstChild = &tarBinDir;
+    tarRoot.nextSibling = NULL;
+    tarRoot.parent = NULL;
+    tarRoot.numChild = 1;
+
+    tarBinDir.firstChild = NULL;
+    tarBinDir.nextSibling = NULL;
+    tarBinDir.parent = &tarRoot;
+    tarBinDir.numChild = 0;
 
     uint8_t *ptr = (uint8_t *)archiveAddress;
     uint8_t *end = ptr + archiveSize;
@@ -84,7 +81,12 @@ int tarfsInitialize(void *archiveAddress, size_t archiveSize) {
 
         if (header->typeflag != '5' && tarFileCount < MAX_TAR_FILES) {
 
-            struct VfsNode *node = &tarFiles[tarFileCount++];
+            tarFileCount++;
+            tarBinDir.numChild++;
+
+            struct VfsNode *node = (struct VfsNode*)kMalloc(sizeof(struct VfsNode));
+            if(!node)
+                continue;
             memset(node, 0, sizeof(struct VfsNode));
 
             // Store file name
@@ -94,12 +96,30 @@ int tarfsInitialize(void *archiveAddress, size_t archiveSize) {
                     name = p + 1;
                 }
             }
-
+            
             strncpy(node->name, name, sizeof(node->name) - 1);
             node->type = REGULAR;
             node->size = size;
             node->read = tarfsRead;
+            node->write = tarfsWrite;
             node->deviceData = ptr + 512;
+            node->firstChild = NULL;
+            node->nextSibling = NULL;
+            node->parent = &tarBinDir;
+            node->numChild = 0;
+
+            struct VfsNode *tarBinLastChild = tarBinDir.firstChild;
+
+            while (tarBinLastChild && tarBinLastChild->nextSibling)
+                tarBinLastChild = tarBinLastChild->nextSibling;
+            
+            if(!tarBinLastChild){
+                tarBinDir.firstChild = node;
+                tarBinLastChild = node;
+            }else{
+                tarBinLastChild->nextSibling = node;
+                tarBinLastChild = node;
+            }
         }
 
         ptr += 512 + ((size + 511) / 512) * 512;

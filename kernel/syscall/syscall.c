@@ -77,22 +77,16 @@ static int sysExec(struct SyscallFrame *frame){
 }
 
 static int sysReadDir(const char* path, char* buf, uint32_t maxLen){
-    
+
     struct VfsNode* node = vfsOpen(path);
 
-    if(!node || node->type != DIR || !buf || maxLen == 0)
+    if (!node || node->type != DIR || !buf || maxLen == 0)
         return -1;
     
-    uint32_t i = 0;
     uint32_t offset = 0;
+    uint32_t count = 0;
 
-    while(1){
-
-        struct VfsNode* entry = vfsReadDir(node, i);
-
-        if(!entry)
-            break;
-        
+    for (struct VfsNode *entry = node->firstChild; entry != NULL; entry = entry->nextSibling) {
         size_t nlen = strlen(entry->name);
         if (offset + nlen + 2 >= maxLen)
             break;
@@ -100,10 +94,11 @@ static int sysReadDir(const char* path, char* buf, uint32_t maxLen){
         memcpy(buf + offset, entry->name, nlen);
         offset += nlen;
         buf[offset++] = '\n';
-        i++;
+        count++;
     }
+
     buf[offset] = '\0';
-    return (int)i;
+    return (int)count; 
 }
 
 void syscallHandler(struct SyscallFrame *frame) {

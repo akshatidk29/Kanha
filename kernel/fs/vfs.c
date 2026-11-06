@@ -12,14 +12,13 @@ struct VfsNode* vfsOpen(const char* path){
     if(!path || !vfsRoot)
         return NULL;
 
-    if(strcmp(path, "/") == 0)
-        return vfsRoot;
-
-    if(path[0] == '/')
-        path += 1;
+    struct VfsNode *currentNode = vfsRoot;
+    
+    while(*path == '/'){
+        path++;
+    }
     
     char token[32];
-    struct VfsNode *currentNode = vfsRoot;
 
     while (*path != '\0'){
 
@@ -28,10 +27,10 @@ struct VfsNode* vfsOpen(const char* path){
         while(*path != '/' && *path != '\0' && len < 31)
             token[len++] = *path++;
         
-        token[len] = '\0';
-
         while(*path == '/')
             path++;
+
+        token[len] = '\0';
 
         currentNode = vfsFindDir(currentNode, token);
         if(!currentNode)
@@ -45,25 +44,42 @@ struct VfsNode* vfsOpen(const char* path){
 }
 
 int vfsRead(struct VfsNode* node,  uint32_t offset, uint8_t* buffer, size_t size){
-
     if(!node || !node->read)
         return -1;
 
     return node->read(node, offset, buffer, size);
 }
 
+int vfsWrite(struct VfsNode* node,  uint32_t offset, uint8_t* buffer, size_t size){
+    if(!node || !node->write)
+        return -1;
+
+    return node->write(node, offset, buffer, size);
+}
+
+
 struct VfsNode* vfsReadDir(struct VfsNode* dir, uint32_t idx){
 
-    if(!dir || dir->type != DIR || !dir->readDir)
+    if(!dir || dir->type != DIR)
         return NULL;
 
-    return dir->readDir(dir, idx);
+    uint32_t i = 0;
+    for(struct VfsNode *c = dir->firstChild; c != NULL; c = c->nextSibling, i++){
+        if(i == idx)
+            return c;
+    }
+    return NULL;
 }
 
 struct VfsNode* vfsFindDir(struct VfsNode* dir, const char* name){
     
-    if (!dir || dir->type != DIR || !dir->findDir)
+    if (!dir || dir->type != DIR)
         return NULL;
 
-    return dir->findDir(dir, name);
+    for(struct VfsNode *c = dir->firstChild; c != NULL; c = c->nextSibling){
+        if(strcmp(c->name, name) == 0)
+            return c;
+    }
+
+    return NULL;
 }

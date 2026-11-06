@@ -13,8 +13,7 @@ struct VfsNode;
 extern struct VfsNode *vfsRoot;
 
 typedef int (*VfsReadFunc)(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);
-typedef struct VfsNode* (*VfsFindDirFunc)(struct VfsNode *dir, const char *name);
-typedef struct VfsNode* (*VfsReadDirFunc)(struct VfsNode *dir, uint32_t idx);
+typedef int (*VfsWriteFunc)(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);
 
 struct VfsNode {
 
@@ -22,9 +21,14 @@ struct VfsNode {
     uint32_t size;
     enum Type type;
 
+    struct VfsNode *parent;
+
+    uint32_t numChild;
+    struct VfsNode *firstChild;
+    struct VfsNode *nextSibling;
+
     VfsReadFunc    read;
-    VfsFindDirFunc findDir;
-    VfsReadDirFunc readDir;
+    VfsWriteFunc   write;
 
     void *deviceData;
 };
@@ -33,6 +37,7 @@ struct VfsNode {
 struct VfsNode* vfsOpen(const char* path);
 
 int vfsRead(struct VfsNode* node,  uint32_t offset, uint8_t* buffer, size_t size);
+int vfsWrite(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);
 
 struct VfsNode* vfsReadDir(struct VfsNode* dir, uint32_t idx);
 struct VfsNode* vfsFindDir(struct VfsNode* dir, const char* name);
