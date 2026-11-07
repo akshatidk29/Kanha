@@ -421,7 +421,7 @@ int processExec(struct SyscallFrame *frame, const char *path, const char **argv)
     uint32_t codePhys = 0;
     addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00400000, &codePhys);
     memset((void *)PHYS_TO_VIRT(codePhys), 0, PAGE_SIZE);
-    memcpy((void *)PHYS_TO_VIRT(codePhys), node->deviceData, node->size);
+    vfsRead(node, 0, (uint8_t *)PHYS_TO_VIRT(codePhys), node->size);
 
     uint32_t stackPhys = 0;
     addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00800000, &stackPhys);

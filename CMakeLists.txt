@@ -51,15 +51,15 @@ set(USER_COMMON_OBJS
 
 macro(build_user_program name)
     add_custom_command(
-        OUTPUT ${BUILD_DIR}/initrdRoot/bin/${name}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${BUILD_DIR}/initrdRoot/bin
+        OUTPUT ${BUILD_DIR}/bin/${name}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${BUILD_DIR}/bin
         COMMAND gcc -m32 -ffreestanding -g -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -I${CMAKE_SOURCE_DIR}/user/lib -I${CMAKE_SOURCE_DIR}/kernel/syscall -c ${CMAKE_SOURCE_DIR}/user/bin/${name}.c -o ${BUILD_DIR}/${name}.o
         COMMAND ld -m elf_i386 -T ${CMAKE_SOURCE_DIR}/user/lib/user.ld -no-pie ${USER_COMMON_OBJS} ${BUILD_DIR}/${name}.o -o ${BUILD_DIR}/${name}.elf
-        COMMAND objcopy -O binary ${BUILD_DIR}/${name}.elf ${BUILD_DIR}/initrdRoot/bin/${name}
+        COMMAND objcopy -O binary ${BUILD_DIR}/${name}.elf ${BUILD_DIR}/bin/${name}
         DEPENDS ${CMAKE_SOURCE_DIR}/user/bin/${name}.c ${USER_COMMON_OBJS} ${CMAKE_SOURCE_DIR}/user/lib/user.ld
         COMMENT "Building user program ${name}"
     )
-    list(APPEND USER_PROGRAMS ${BUILD_DIR}/initrdRoot/bin/${name})
+    list(APPEND USER_PROGRAMS ${BUILD_DIR}/bin/${name})
 endmacro()
 
 # User programs compilation
@@ -73,14 +73,12 @@ build_user_program(touch)
 build_user_program(mkdir)
 build_user_program(writefile)
 
-# Package all user binaries into initrd.tar and convert to initrd.o
-add_custom_command(
-    OUTPUT ${BUILD_DIR}/initrd.o
-    COMMAND tar -cf ${BUILD_DIR}/initrd.tar -C ${BUILD_DIR}/initrdRoot bin
-    COMMAND ld -m elf_i386 -r -b binary -o ${BUILD_DIR}/initrd.o initrd.tar
-    WORKING_DIRECTORY ${BUILD_DIR}
+set(DISK_IMAGE ${CMAKE_SOURCE_DIR}/disk.img)
+
+add_custom_target(populateDisk ALL
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/populateDisk.py ${DISK_IMAGE} ${BUILD_DIR}/bin
     DEPENDS ${USER_PROGRAMS}
-    COMMENT "Packaging initrd.tar with user binaries and converting to initrd.o"
+    COMMENT "Installing user binaries into disk.img (/bin)"
 )
 
 add_executable(kernel.elf
@@ -114,10 +112,8 @@ add_executable(kernel.elf
     kernel/syscall/switch.asm
     kernel/syscall/syscall.c
     kernel/fs/vfs.c
-    kernel/fs/tarfs.c
     kernel/fs/bcache.c
     kernel/fs/ext2.c
-    ${BUILD_DIR}/initrd.o
 )
 
 target_include_directories(kernel.elf 
@@ -151,18 +147,9 @@ add_custom_target(kanha.img ALL
                     ${BUILD_DIR}/header.bin
                     ${BUILD_DIR}/kernel.bin
                     ${BUILD_DIR}/kanha.img
-    DEPENDS kernel.elf ${BUILD_DIR}/boot.bin
+    DEPENDS kernel.elf ${BUILD_DIR}/boot.bin populateDisk
     COMMENT "Building Kanha"
 )
-
-
-
-set(DISK_IMAGE ${CMAKE_SOURCE_DIR}/disk.img)
-if(NOT EXISTS ${DISK_IMAGE})
-    execute_process(
-        COMMAND mke2fs -b 1024 -I 128 -F -O none -m 0 ${DISK_IMAGE} 32M
-    )
-endif()
 
 # Run 
 add_custom_target(run

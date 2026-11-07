@@ -94,25 +94,25 @@ struct Ext2DirEntry {
 
 int ext2Mount(uint8_t drive);
 
-// Reads an inode by number from disk
+// Reads an inode
 int ext2ReadInode(uint32_t inodeNum, struct Ext2Inode *outInode);
 
-// Writes an inode by number to disk
+// Writes an inode
 int ext2WriteInode(uint32_t inodeNum, const struct Ext2Inode *inInode);
 
-// Allocates a free block and updates bitmaps on disk
+// Allocates a free block
 uint32_t ext2AllocBlock(void);
 
-// Allocates a free inode and updates bitmaps on disk
+// Allocates a free inode
 uint32_t ext2AllocInode(void);
 
-// Creates a new file or directory on the ext2 disk under parentDir
+// Creates a new file or directory
 struct VfsNode *ext2Create(struct VfsNode *parentDir, const char *name, uint32_t mode);
 
-// Reads bytes from a file represented by an inode
+// Reads bytes from a file
 int ext2Read(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);
 
-// Writes bytes to a file represented by an inode
+// Writes bytes to a file
 int ext2Write(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);
 
 #endif

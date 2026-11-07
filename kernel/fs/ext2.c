@@ -11,7 +11,7 @@ static struct Ext2GroupDesc *groupDescs = NULL;
 static uint32_t blockSize = 1024;
 static uint32_t numGroups = 0;
 
-static struct VfsNode ext2DiskDir;
+static struct VfsNode ext2RootDir;
 
 int ext2ReadInode(uint32_t inodeNum, struct Ext2Inode *outInode) {
     if (!outInode || inodeNum == 0) {
@@ -22,18 +22,15 @@ int ext2ReadInode(uint32_t inodeNum, struct Ext2Inode *outInode) {
     uint32_t indexInGroup = (inodeNum - 1) % sb.inodesPerGroup;
     uint32_t inodeSize = sb.inodeSize ? sb.inodeSize : sizeof(struct Ext2Inode);
 
-    if (groupIndex >= numGroups) {
+    if (groupIndex >= numGroups) 
         return -1;
-    }
 
-    uint32_t blockNum = groupDescs[groupIndex].inodeTable + 
-                        (indexInGroup * inodeSize) / blockSize;
+    uint32_t blockNum = groupDescs[groupIndex].inodeTable + (indexInGroup * inodeSize) / blockSize;
     uint32_t offsetInBlock = (indexInGroup * inodeSize) % blockSize;
 
     struct Buffer *b = bcacheGet(ext2Drive, blockNum);
-    if (!b) {
+    if (!b) 
         return -1;
-    }
 
     memcpy(outInode, b->data + offsetInBlock, sizeof(struct Ext2Inode));
     bcacheRelease(b);
@@ -49,9 +46,8 @@ int ext2WriteInode(uint32_t inodeNum, const struct Ext2Inode *inInode) {
     uint32_t indexInGroup = (inodeNum - 1) % sb.inodesPerGroup;
     uint32_t inodeSize = sb.inodeSize ? sb.inodeSize : sizeof(struct Ext2Inode);
 
-    if (groupIndex >= numGroups) {
+    if (groupIndex >= numGroups) 
         return -1;
-    }
 
     uint32_t blockNum = groupDescs[groupIndex].inodeTable + 
                         (indexInGroup * inodeSize) / blockSize;
@@ -537,27 +533,16 @@ int ext2Mount(uint8_t drive) {
     kprintf("EXT2: Filesystem verified (%d blocks, %d inodes, %d groups, block size %d)\n",
             sb.blocksCount, sb.inodesCount, numGroups, blockSize);
 
-    memset(&ext2DiskDir, 0, sizeof(ext2DiskDir));
-    strcpy(ext2DiskDir.name, "disk");
-    ext2DiskDir.type = DIR;
-    ext2DiskDir.parent = vfsRoot;
-    ext2DiskDir.deviceData = (void *)2;
+    memset(&ext2RootDir, 0, sizeof(ext2RootDir));
+    strcpy(ext2RootDir.name, "/");
+    ext2RootDir.type = DIR;
+    ext2RootDir.parent = NULL;
+    ext2RootDir.deviceData = (void *)2;
 
-    if (vfsRoot) {
-        struct VfsNode *sibling = vfsRoot->firstChild;
-        while (sibling && sibling->nextSibling) {
-            sibling = sibling->nextSibling;
-        }
-        if (!sibling) {
-            vfsRoot->firstChild = &ext2DiskDir;
-        } else {
-            sibling->nextSibling = &ext2DiskDir;
-        }
-        vfsRoot->numChild++;
-    }
+    vfsRoot = &ext2RootDir;
 
-    ext2PopulateDirectory(&ext2DiskDir, 2);
+    ext2PopulateDirectory(&ext2RootDir, 2);
 
-    kprintf("EXT2: Mounted at /disk with %d root entries\n", ext2DiskDir.numChild);
+    kprintf("EXT2: Mounted as root filesystem (/) with %d root entries\n", ext2RootDir.numChild);
     return 0;
 }

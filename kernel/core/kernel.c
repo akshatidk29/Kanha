@@ -18,14 +18,10 @@
 #include "task/scheduler.h"
 #include "task/process.h"
 #include "fs/vfs.h"
-#include "fs/tarfs.h"
 #include "drivers/ata.h"
 #include "fs/bcache.h"
 #include "fs/ext2.h"
 #include "lib/string.h"
-
-extern uint8_t _binary_initrd_tar_start[];
-extern uint8_t _binary_initrd_tar_end[];
 
 volatile uint32_t ticks;
 
@@ -176,19 +172,20 @@ void kernelMain(struct BootInfo *bootInfo){
     enableInterrupts();
     schedulerInitialize();
 
-    // Mount Ramdisk
-    size_t initrdSize = (size_t)(_binary_initrd_tar_end - _binary_initrd_tar_start);
-    tarfsInitialize(_binary_initrd_tar_start, initrdSize);
-
-    // Initialize ATA, Buffer Cache, and Mount ext2 filesystem
+    // Initialize ATA, Buffer Cache, and Mount ext2 root filesystem
     ataInitialize();
     bcacheInitialize();
     ext2Mount(ATA_DRIVE_SLAVE);
 
-    // Launch initial user process
+    // Launch initial user process from ext2 root filesystem
     struct VfsNode *initProc = vfsOpen("/bin/shell");
     if (initProc) {
-        processCreate((uint8_t *)initProc->deviceData, initProc->size);
+        uint8_t *codeBuf = (uint8_t *)kMalloc(initProc->size);
+        if (codeBuf) {
+            vfsRead(initProc, 0, codeBuf, initProc->size);
+            processCreate(codeBuf, initProc->size);
+            kFree(codeBuf);
+        }
     }
 
     while (1) {
