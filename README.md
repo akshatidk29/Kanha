@@ -28,29 +28,40 @@ Kanha is a 32-bit x86 monolithic operating system kernel written from scratch in
   * `waitpid()`: Blocks until child process terminates, retrieves exit code, and reaps memory.
 * Process termination exits all sibling threads.
 
-### Virtual File System (VFS)
-* **Tree-based VFS**: Hierarchical structure implemented using LCRS linked nodes.
-* **TarFS**: Reads an embedded `initrd.tar` ramdisk and builds the `/bin` directory tree at boot.
+### Storage and Filesystem
+* **ATA PIO Driver**: PIO IDE driver on Primary ATA bus.
+* **Block Buffer Cache**: In-memory LRU cache with write-through flushing.
+* **Virtual File System (VFS)**: Hierarchical directory tree LCRS nodes.
+* **ext2 Filesystem**: Full persistent on-disk ext2 driver.
 
 ### System Calls
-* `SYS_EXIT`     : Terminate process/thread and return status code.
-* `SYS_WRITE`: Output to VGA console and COM1 serial port.
-* `SYS_YIELD`: Cooperative CPU yield.
-* `SYS_SLEEP`: Sleep for a given duration in milliseconds.
-* `SYS_READ`: Read input from keyboard / stdin buffer.
-* `SYS_SPAWN`: Direct binary spawn.
-* `SYS_READDIR`: List directory entries.
-* `SYS_FORK`: Clone process.
-* `SYS_EXEC`: Execute program with arguments.
+* `SYS_EXIT`    : Terminate process/thread and return status code.
+* `SYS_WRITE`   : Output to VGA console, COM1 serial port, or open file descriptor.
+* `SYS_YIELD`   : Cooperative CPU yield.
+* `SYS_SLEEP`   : Sleep for a given duration in milliseconds.
+* `SYS_READ`    : Read input from keyboard / stdin buffer or open file descriptor.
+* `SYS_SPAWN`   : Direct binary spawn.
+* `SYS_READDIR` : List directory entries.
+* `SYS_FORK`    : Clone process.
+* `SYS_EXEC`    : Execute program with arguments.
 * `SYS_WAITPID` : Wait for child process termination and reap resources.
+* `SYS_OPEN`    : Open or create a file with access flags.
+* `SYS_CLOSE`   : Close an open file descriptor.
+* `SYS_MKDIR`   : Create a new directory.
 
 ### User Space
-* Custom C runtime startup (`crt0.asm`) passing `argc` and `argv` to `main(int argc, char **argv)`.
-* User-level library (`ulib.h`, `stdio.h`, `string.h`).
+* Custom C runtime startup passing `argc` and `argv` to `main(int argc, char **argv)`.
+* User-level library.
+* Standard file descriptor table per process.
 * Included binaries:
-  * `/bin/shell`: Interactive shell with argument parsing, `/bin/` path resolution, and `fork`/`exec`/`waitpid` workflow.
+  * `/bin/shell`: Interactive shell with argument parsing.
   * `/bin/ls`: Directory listing utility supporting path arguments.
-  * `/bin/init`: Interactive user program.
+  * `/bin/cat`: Print contents of a file to stdout.
+  * `/bin/touch`: Create an empty file.
+  * `/bin/mkdir`: Create a directory.
+  * `/bin/writefile`: Write text arguments to a file.
+  * `/bin/hello`: Simple test binary.
+  * `/bin/help`: Display available commands.
 
 ## Building and Running
 
@@ -59,6 +70,7 @@ Kanha is a 32-bit x86 monolithic operating system kernel written from scratch in
 * `nasm`
 * `cmake`
 * `python3`
+* `e2fsprogs` (`mke2fs`, `debugfs`)
 * `qemu-system-i386`
 
 ### Build
@@ -69,5 +81,9 @@ cmake --build build
 
 ### Run
 ```bash
-qemu-system-i386 -m 512M -drive file=build/kanha.img,format=raw -serial stdio
+cmake --build build --target run
+```
+Or directly with QEMU:
+```bash
+qemu-system-i386 -m 512M -drive file=build/kanha.img,format=raw,index=0,media=disk -drive file=disk.img,format=raw,index=1,media=disk -serial stdio
 ```
