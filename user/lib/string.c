@@ -73,6 +73,20 @@ char *strcpy(char *dest, const char *src){
     return dest;
 }
 
+char *strcat(char *dest, const char *src) {
+    if (dest == NULL)
+        return NULL;
+    if (src == NULL)
+        return dest;
+
+    char *d = dest;
+    while (*d != '\0')
+        d++;
+    while ((*d++ = *src++) != '\0')
+        ;
+    return dest;
+}
+
 char *strncpy(char *dest, const char *src, size_t n) {
     if (!dest || !src) 
         return NULL;
