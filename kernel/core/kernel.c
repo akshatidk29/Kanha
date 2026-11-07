@@ -43,106 +43,10 @@ void kernelPanic(char* msg){
     }
 }
 
-
-void printE820(struct BootInfo *bootInfo){
-
-    struct E820Entry *entries =
-        (struct E820Entry *)PHYS_TO_VIRT(bootInfo->e820Address);
-
-    vgaWrite("E820 Memory Map\n");
-
-    for (uint32_t i = 0; i < bootInfo->e820Count; i++) {
-
-        vgaWrite("BASE: ");
-        vgaPutUnsignedInt64(entries[i].base);
-
-        vgaWrite(" LENGTH: ");
-        vgaPutUnsignedInt64(entries[i].length); 
-
-        vgaWrite(" TYPE: ");
-        vgaPutUnsignedInt64(entries[i].type);  
-
-        vgaWrite(" ATTRIBUTES: ");
-        vgaPutUnsignedInt64(entries[i].attributes);
-
-        vgaWrite("\n");
-    }
-}
-
-static void testPaging(void){
-
-    kprintf("TOTAL FRAMES: %d\n", pmmTotalFramesCount());
-    kprintf("FREE FRAMES: %d\n", pmmFreeFramesCount());
-    kprintf("RESERVED FRAMES: %d\n\n", pmmReservedFramesCount());
-
-    uint32_t before = pmmFreeFramesCount();
-    uint32_t frame = pmmAllocateFrame();
-
-    if (frame == 0)
-        kernelPanic("PMM allocation failed");
-
-    if (frame % PMM_PAGE_SIZE != 0)
-        kernelPanic("PMM returned an unaligned frame");
-
-    if (pmmFreeFramesCount() != before - 1)
-        kernelPanic("PMM free count incorrect after allocation");
-
-    if (pmmDeallocateFrame(frame) != 0)
-        kernelPanic("PMM deallocation failed");
-
-    if (pmmFreeFramesCount() != before)
-        kernelPanic("PMM free count incorrect after deallocation");
-
-    kprintf("PMM Tests Passed\n");
-}
-
-static void testHeap(void){
-
-    int *p1 = (int *)kMalloc(sizeof(int) * 10);
-    if (!p1) 
-        kernelPanic("kMalloc failed for p1\n");
-    p1[0] = 42;
-    p1[9] = 99;
-
-    char *p2 = (char *)kMalloc(8192);
-    if (!p2) 
-        kernelPanic("kMalloc failed\n");
-    p2[0] = 'A';
-    p2[8191] = 'Z';
-
-    if (kFree(p1) != 0) 
-        kernelPanic("kFree failed\n");
-    if (kFree(p2) != 0) 
-        kernelPanic("kFree failed\n");
-
-    char *p3 = (char *)kMalloc(10000);
-    if (!p3) 
-        kernelPanic("kMalloc failed\n");
-    p3[0] = 'X';
-    p3[9999] = 'Y';
-    if (kFree(p3) != 0) 
-        kernelPanic("kFree failed\n");
-
-    if ((void *)p3 != (void *)p1) {
-        kernelPanic("Coalescing failed\n");
-    }
-
-    kprintf("Heap Tests Passed\n");
-}
-
-void* func(int count){
-    spinLockAcquire(&lock);
-    for(int i = 0; i < count; i++){
-        globalCounter++;
-    }
-    spinLockRelease(&lock);
-    return NULL;
-}
-
 void kernelMain(struct BootInfo *bootInfo){
     ticks = 0;
 
-    vgaInitialize();           // Initialize VGA (at 0xC00B8000)
+    vgaInitialize();           // Initialize VGA
     idtInitialize();           // Initialize IDT
     picInitialize();           // Initialize PIC
     pitInitialize(1000);       // Initialize PIT with 1KHz frequency
@@ -150,16 +54,13 @@ void kernelMain(struct BootInfo *bootInfo){
     stdinInitialize();
     pmmInitialize(bootInfo);
     
-    if(pagingInitialize() != 0){
-        vgaWrite("Paging Initialization Failed\n");
-        kernelPanic(NULL);
-    }
+    if(pagingInitialize() != 0)
+        kernelPanic("Paging Initialization Failed\n");
+    
     pagingEnable(getKernelPageDirectory());
     
-    if(heapInitialize() != 0){
-        vgaWrite("Heap Initialization Failed\n");
-        kernelPanic(NULL);
-    }
+    if(heapInitialize() != 0)
+        kernelPanic("Heap Initialization Failed\n");
 
     uint32_t currentEsp;
     __asm__ volatile("mov %%esp, %0" : "=r"(currentEsp));
@@ -177,7 +78,7 @@ void kernelMain(struct BootInfo *bootInfo){
     bcacheInitialize();
     ext2Mount(ATA_DRIVE_SLAVE);
 
-    // Launch initial user process from ext2 root filesystem
+    // Launch Shell
     struct VfsNode *initProc = vfsOpen("/bin/shell");
     if (initProc) {
         uint8_t *codeBuf = (uint8_t *)kMalloc(initProc->size);

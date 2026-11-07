@@ -10,77 +10,6 @@
 #include "fs/ext2.h"
 #include "lib/string.h"
 
-static int sysWrite(int fd, const char *buf, uint32_t len) {
-
-    if (!buf)
-        return -1;
-
-    if (fd == 1 || fd == 2) {
-        for (uint32_t i = 0; i < len; i++) {
-            serialWriteChar(buf[i]);
-            vgaPutChar(buf[i]);
-        }
-        return len;
-    }
-
-    if (fd >= 3 && fd < MAX_FD) {
-        struct Process *proc = currentProcess();
-        if (!proc || proc->files[fd].node == NULL) {
-            return -1;
-        }
-
-        struct FileDescriptor *file = &proc->files[fd];
-        int bytes = vfsWrite(file->node, file->offset, (uint8_t *)buf, len);
-        if (bytes > 0) {
-            file->offset += bytes;
-        }
-        return bytes;
-    }
-
-    return -1; 
-}
-
-static int sysRead(int fd, char *buf, uint32_t len) {
-
-    if (!buf || len == 0)
-        return -1;
-
-    if (fd == 0) {
-        uint32_t bytesRead = 0;
-        while (bytesRead < len) {
-            int c = stdinGetChar();
-            if (c == -1) {
-                if (bytesRead > 0) {
-                    break;
-                }
-                yield();
-                continue;
-            }
-            buf[bytesRead++] = (char)c;
-            if ((char)c == '\n') {
-                break;
-            }
-        }
-        return (int)bytesRead;
-    }
-
-    if (fd >= 3 && fd < MAX_FD) {
-        struct Process *proc = currentProcess();
-        if (!proc || proc->files[fd].node == NULL) {
-            return -1;
-        }
-
-        struct FileDescriptor *file = &proc->files[fd];
-        int bytes = vfsRead(file->node, file->offset, (uint8_t *)buf, len);
-        if (bytes > 0) {
-            file->offset += bytes;
-        }
-        return bytes;
-    }
-
-    return -1; 
-}
-
 static int sysOpen(const char *path, int flags) {
     if (!path) {
         return -1;
@@ -121,52 +50,89 @@ static int sysOpen(const char *path, int flags) {
 }
 
 static int sysClose(int fd) {
-    if (fd < 3 || fd >= MAX_FD) {
+    if (fd < 3 || fd >= MAX_FD)
         return -1;
-    }
 
     struct Process *proc = currentProcess();
-    if (!proc || proc->files[fd].node == NULL) {
+    if (!proc || proc->files[fd].node == NULL) 
         return -1;
-    }
 
     proc->files[fd].node = NULL;
     proc->files[fd].offset = 0;
     return 0;
 }
 
-static int sysMkdir(const char *path) {
-    if (!path) {
+static int sysRead(int fd, char *buf, uint32_t len) {
+
+    if (!buf || len == 0)
         return -1;
+
+    if (fd == 0) {
+        uint32_t bytesRead = 0;
+        while (bytesRead < len) {
+            int c = stdinGetChar();
+            if (c == -1) {
+                if (bytesRead > 0)
+                    break;
+                yield();
+                continue;
+            }
+            buf[bytesRead++] = (char)c;
+            if ((char)c == '\n')
+                break;
+        }
+        return (int)bytesRead;
     }
 
+    if (fd >= 3 && fd < MAX_FD) {
+        struct Process *proc = currentProcess();
+        if (!proc || proc->files[fd].node == NULL)
+            return -1;
+
+        struct FileDescriptor *file = &proc->files[fd];
+        int bytes = vfsRead(file->node, file->offset, (uint8_t *)buf, len);
+        if (bytes > 0)
+            file->offset += bytes;
+        return bytes;
+    }
+
+    return -1; 
+}
+
+static int sysWrite(int fd, const char *buf, uint32_t len) {
+
+    if (!buf)
+        return -1;
+
+    if (fd == 1 || fd == 2) {
+        for (uint32_t i = 0; i < len; i++) {
+            serialWriteChar(buf[i]);
+            vgaPutChar(buf[i]);
+        }
+        return len;
+    }
+
+    if (fd >= 3 && fd < MAX_FD) {
+        struct Process *proc = currentProcess();
+        if (!proc || proc->files[fd].node == NULL) 
+            return -1;
+
+        struct FileDescriptor *file = &proc->files[fd];
+        int bytes = vfsWrite(file->node, file->offset, (uint8_t *)buf, len);
+        if (bytes > 0)
+            file->offset += bytes;
+        return bytes;
+    }
+    return -1; 
+}
+
+
+
+static int sysMkdir(const char *path) {
+    if (!path)
+        return -1;
     struct VfsNode *node = vfsCreate(path, EXT2_S_IFDIR);
     return (node != NULL) ? 0 : -1;
-}
-
-static int sysSpawn(const char* path){
-    struct VfsNode* node = vfsOpen(path);
-
-    if(!node || node->type != REGULAR)
-        return -1;
-    struct Process* proc = processCreate(node->deviceData, node->size);
-    return proc ? proc->pid : -1;
-}
-
-static int sysFork(struct SyscallFrame *frame) {
-    struct Process *child = processFork(frame);
-    if (!child) {
-        return -1;
-    }
-    return (int)child->pid; 
-}
-
-static int sysExec(struct SyscallFrame *frame){
-    const char *path = (const char *)frame->ebx;
-    const char **argv = (const char **)frame->ecx;
-    if(!path)
-        return -1;
-    return processExec(frame, path, argv);
 }
 
 static int sysReadDir(const char* path, char* buf, uint32_t maxLen){
@@ -186,13 +152,39 @@ static int sysReadDir(const char* path, char* buf, uint32_t maxLen){
 
         memcpy(buf + offset, entry->name, nlen);
         offset += nlen;
-        buf[offset++] = '\n';
+        buf[offset++] = '\t';
         count++;
     }
-
+    
+    buf[offset++] = '\n';
     buf[offset] = '\0';
     return (int)count; 
 }
+
+
+static int sysSpawn(const char* path){
+    struct VfsNode* node = vfsOpen(path);
+    if(!node || node->type != REGULAR)
+        return -1;
+    struct Process* proc = processCreate(node->deviceData, node->size);
+    return proc ? proc->pid : -1;
+}
+
+static int sysFork(struct SyscallFrame *frame) {
+    struct Process *child = processFork(frame);
+    if (!child) 
+        return -1;
+    return (int)child->pid; 
+}
+
+static int sysExec(struct SyscallFrame *frame){
+    const char *path = (const char *)frame->ebx;
+    const char **argv = (const char **)frame->ecx;
+    if(!path)
+        return -1;
+    return processExec(frame, path, argv);
+}
+
 
 void syscallHandler(struct SyscallFrame *frame) {
 
