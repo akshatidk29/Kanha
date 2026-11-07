@@ -89,6 +89,7 @@ add_executable(kernel.elf
     kernel/drivers/keyboard.c
     kernel/drivers/stdin.c
     kernel/drivers/serial.c
+    kernel/drivers/ata.c
     kernel/arch/x86/hardware/pic.c
     kernel/arch/x86/hardware/timer.c
     kernel/arch/x86/hardware/tss.c
@@ -150,9 +151,16 @@ add_custom_target(kanha.img ALL
 
 
 
+set(DISK_IMAGE ${CMAKE_SOURCE_DIR}/disk.img)
+if(NOT EXISTS ${DISK_IMAGE})
+    execute_process(
+        COMMAND qemu-img create -f raw ${DISK_IMAGE} 32M
+    )
+endif()
+
 # Run 
 add_custom_target(run
-    COMMAND qemu-system-i386 -m 512M -drive file=${BUILD_DIR}/kanha.img,format=raw -no-reboot -serial stdio
+    COMMAND qemu-system-i386 -m 512M -drive file=${BUILD_DIR}/kanha.img,format=raw,index=0,media=disk -drive file=${DISK_IMAGE},format=raw,index=1,media=disk -no-reboot -serial stdio
     DEPENDS kanha.img
     COMMENT "Running Kanha"
 )
@@ -161,7 +169,8 @@ add_custom_target(run
 add_custom_target(debug
     COMMAND qemu-system-i386
             -m 512M
-            -drive file=${BUILD_DIR}/kanha.img,format=raw
+            -drive file=${BUILD_DIR}/kanha.img,format=raw,index=0,media=disk
+            -drive file=${DISK_IMAGE},format=raw,index=1,media=disk
             -serial stdio
             -S
             -gdb tcp::1234

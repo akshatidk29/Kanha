@@ -25,4 +25,46 @@ static inline uint8_t inB(uint16_t port)                        // Read from Har
     return value;
 }
 
+static inline void outW(uint16_t port, uint16_t value)
+{
+    __asm__ volatile (
+        "outw %0, %1"
+        :
+        : "a"(value), "Nd"(port)
+    );
+}
+
+static inline uint16_t inW(uint16_t port)
+{
+    uint16_t value;
+
+    __asm__ volatile (
+        "inw %1, %0"
+        : "=a"(value)
+        : "Nd"(port)
+    );
+
+    return value;
+}
+
+static inline void insW(uint16_t port, void *addr, uint32_t count)
+{
+    __asm__ volatile (
+        "cld; rep insw"
+        : "+D"(addr), "+c"(count)
+        : "d"(port)
+        : "memory"
+    );
+}
+
+static inline void outsW(uint16_t port, const void *addr, uint32_t count)
+{
+    __asm__ volatile (
+        "cld; rep outsw"
+        : "+S"(addr), "+c"(count)
+        : "d"(port)
+        : "memory"
+    );
+}
+
 #endif
