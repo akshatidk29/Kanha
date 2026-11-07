@@ -43,6 +43,44 @@ struct VfsNode* vfsOpen(const char* path){
     return currentNode;
 }
 
+struct VfsNode *ext2Create(struct VfsNode *parentDir, const char *name, uint32_t mode);
+
+struct VfsNode* vfsCreate(const char* path, uint32_t mode){
+    if(!path || !vfsRoot)
+        return NULL;
+
+    struct VfsNode *existing = vfsOpen(path);
+    if(existing)
+        return existing;
+
+    char parentPath[64];
+    const char *lastSlash = NULL;
+    for (const char *p = path; *p != '\0'; p++) {
+        if (*p == '/') lastSlash = p;
+    }
+
+    const char *fileName = NULL;
+    if (!lastSlash) {
+        strcpy(parentPath, "/");
+        fileName = path;
+    } else if (lastSlash == path) {
+        strcpy(parentPath, "/");
+        fileName = lastSlash + 1;
+    } else {
+        size_t dlen = lastSlash - path;
+        if (dlen > 63) dlen = 63;
+        memcpy(parentPath, path, dlen);
+        parentPath[dlen] = '\0';
+        fileName = lastSlash + 1;
+    }
+
+    struct VfsNode *parentDir = vfsOpen(parentPath);
+    if (!parentDir || parentDir->type != DIR)
+        return NULL;
+
+    return ext2Create(parentDir, fileName, mode);
+}
+
 int vfsRead(struct VfsNode* node,  uint32_t offset, uint8_t* buffer, size_t size){
     if(!node || !node->read)
         return -1;

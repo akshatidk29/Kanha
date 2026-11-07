@@ -35,6 +35,7 @@ struct VfsNode {
 
 
 struct VfsNode* vfsOpen(const char* path);
+struct VfsNode* vfsCreate(const char* path, uint32_t mode);
 
 int vfsRead(struct VfsNode* node,  uint32_t offset, uint8_t* buffer, size_t size);
 int vfsWrite(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);

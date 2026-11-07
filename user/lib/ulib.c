@@ -38,6 +38,18 @@ int read(int fd, void *buf, size_t count) {
     return syscall3(SYS_READ, fd, (int)buf, (int)count);
 }
 
+int open(const char *path, int flags) {
+    return syscall2(SYS_OPEN, (int)path, flags);
+}
+
+int close(int fd) {
+    return syscall1(SYS_CLOSE, fd);
+}
+
+int mkdir(const char *path) {
+    return syscall1(SYS_MKDIR, (int)path);
+}
+
 void yield(void) {
     syscall0(SYS_YIELD);
 }

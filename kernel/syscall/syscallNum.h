@@ -11,5 +11,8 @@
 #define SYS_FORK    8
 #define SYS_EXEC    9
 #define SYS_WAITPID 10
+#define SYS_OPEN    11
+#define SYS_CLOSE   12
+#define SYS_MKDIR   13
  
 #endif 

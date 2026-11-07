@@ -7,6 +7,7 @@
 #include "task/process.h"
 #include "task/scheduler.h"
 #include "fs/vfs.h"
+#include "fs/ext2.h"
 #include "lib/string.h"
 
 static int sysWrite(int fd, const char *buf, uint32_t len) {
@@ -20,6 +21,20 @@ static int sysWrite(int fd, const char *buf, uint32_t len) {
             vgaPutChar(buf[i]);
         }
         return len;
+    }
+
+    if (fd >= 3 && fd < MAX_FD) {
+        struct Process *proc = currentProcess();
+        if (!proc || proc->files[fd].node == NULL) {
+            return -1;
+        }
+
+        struct FileDescriptor *file = &proc->files[fd];
+        int bytes = vfsWrite(file->node, file->offset, (uint8_t *)buf, len);
+        if (bytes > 0) {
+            file->offset += bytes;
+        }
+        return bytes;
     }
 
     return -1; 
@@ -49,7 +64,84 @@ static int sysRead(int fd, char *buf, uint32_t len) {
         return (int)bytesRead;
     }
 
+    if (fd >= 3 && fd < MAX_FD) {
+        struct Process *proc = currentProcess();
+        if (!proc || proc->files[fd].node == NULL) {
+            return -1;
+        }
+
+        struct FileDescriptor *file = &proc->files[fd];
+        int bytes = vfsRead(file->node, file->offset, (uint8_t *)buf, len);
+        if (bytes > 0) {
+            file->offset += bytes;
+        }
+        return bytes;
+    }
+
     return -1; 
+}
+
+static int sysOpen(const char *path, int flags) {
+    if (!path) {
+        return -1;
+    }
+
+    struct Process *proc = currentProcess();
+    if (!proc) {
+        return -1;
+    }
+
+    int freeFd = -1;
+    for (int i = 3; i < MAX_FD; i++) {
+        if (proc->files[i].node == NULL) {
+            freeFd = i;
+            break;
+        }
+    }
+
+    if (freeFd == -1) {
+        return -1;
+    }
+
+    struct VfsNode *node = vfsOpen(path);
+    if (!node) {
+        if (flags & 0x0040) { // O_CREAT
+            node = vfsCreate(path, EXT2_S_IFREG);
+        }
+    }
+
+    if (!node || node->type != REGULAR) {
+        return -1;
+    }
+
+    proc->files[freeFd].node = node;
+    proc->files[freeFd].offset = 0;
+    proc->files[freeFd].flags = flags;
+    return freeFd;
+}
+
+static int sysClose(int fd) {
+    if (fd < 3 || fd >= MAX_FD) {
+        return -1;
+    }
+
+    struct Process *proc = currentProcess();
+    if (!proc || proc->files[fd].node == NULL) {
+        return -1;
+    }
+
+    proc->files[fd].node = NULL;
+    proc->files[fd].offset = 0;
+    return 0;
+}
+
+static int sysMkdir(const char *path) {
+    if (!path) {
+        return -1;
+    }
+
+    struct VfsNode *node = vfsCreate(path, EXT2_S_IFDIR);
+    return (node != NULL) ? 0 : -1;
 }
 
 static int sysSpawn(const char* path){
@@ -181,6 +273,25 @@ void syscallHandler(struct SyscallFrame *frame) {
             int *status = (int *)frame->ecx;
             int options = (int)frame->edx;
             frame->eax = processWaitPid(pid, status, options);
+            break;
+        }
+
+        case SYS_OPEN: {
+            const char *path = (const char *)frame->ebx;
+            int flags = (int)frame->ecx;
+            frame->eax = sysOpen(path, flags);
+            break;
+        }
+
+        case SYS_CLOSE: {
+            int fd = (int)frame->ebx;
+            frame->eax = sysClose(fd);
+            break;
+        }
+
+        case SYS_MKDIR: {
+            const char *path = (const char *)frame->ebx;
+            frame->eax = sysMkdir(path);
             break;
         }
 
