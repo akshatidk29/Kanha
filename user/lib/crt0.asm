@@ -11,7 +11,6 @@ section .text
 
 _start:
     xor ebp, ebp                ; Clear ebp 
-    push ebp
 
     mov edi, __bss_start        ; Zero out the BSS segment
     mov ecx, __bss_end
@@ -19,10 +18,13 @@ _start:
     xor eax, eax
     rep stosb   
 
-    push 0                      ; argv = NULL
-    push 0                      ; argc = 0
+    ; Stack layout
+    ; [esp]     = argc
+    ; [esp + 4] = argv
+    push dword [esp + 4]        ; push argv
+    push dword [esp + 4]        ; push argc
     call main                   
-    add esp, 8                   ; Clean up the arguments
+    add esp, 8                  ; Clean up the arguments
 
     push eax
     call exit                   ; exit(eax)

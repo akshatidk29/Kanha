@@ -54,8 +54,8 @@ int fork(void) {
     return syscall0(SYS_FORK);
 }
 
-int exec(const char *path) {
-    return syscall1(SYS_EXEC, (int)path);
+int exec(const char *path, char *const argv[]) {
+    return syscall2(SYS_EXEC, (int)path, (int)argv);
 }
 
 int waitpid(int pid, int *status, int options) {

@@ -173,7 +173,13 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
         kFree(proc);
         return NULL;
     }
-    proc->userStackTop = 0x00800000 + PAGE_SIZE - 16;
+    uint32_t userStackTop = 0x00800000 + PAGE_SIZE - 16;
+    uint8_t *kStackBase = (uint8_t *)PHYS_TO_VIRT(stackPhys);
+    userStackTop -= 4;
+    *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = 0; // argv = NULL
+    userStackTop -= 4;
+    *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = 0; // argc = 0
+    proc->userStackTop = userStackTop;
 
     // Create the main thread for this process
     struct Thread *thread = threadCreate(processEntry, proc);
@@ -358,7 +364,10 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
     return childProc;
 }
 
-int processExec(struct SyscallFrame *frame, const char *path) {
+#define MAX_EXEC_ARGS 16
+#define MAX_EXEC_ARG_LEN 64
+
+int processExec(struct SyscallFrame *frame, const char *path, const char **argv) {
     if (!frame || !path)
         return -1;
 
@@ -369,6 +378,18 @@ int processExec(struct SyscallFrame *frame, const char *path) {
     struct Process *proc = currentProcess();
     if (!proc)
         return -1;
+
+    // Buffer arguments into kernel memory before modifying user address space
+    char kargs[MAX_EXEC_ARGS][MAX_EXEC_ARG_LEN];
+    int argc = 0;
+
+    if (argv) {
+        while (argv[argc] != NULL && argc < MAX_EXEC_ARGS) {
+            strncpy(kargs[argc], argv[argc], MAX_EXEC_ARG_LEN - 1);
+            kargs[argc][MAX_EXEC_ARG_LEN - 1] = '\0';
+            argc++;
+        }
+    }
 
     // Terminate all sibling threads
     struct Thread *curr = scheduledThread();
@@ -393,8 +414,52 @@ int processExec(struct SyscallFrame *frame, const char *path) {
     addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00800000, &stackPhys);
     memset((void *)PHYS_TO_VIRT(stackPhys), 0, PAGE_SIZE);
 
+    // Build the initial user stack
+    uint32_t userStackTop = 0x00800000 + PAGE_SIZE;
+    uint8_t *kStackBase = (uint8_t *)PHYS_TO_VIRT(stackPhys);
+    uint32_t userArgvPointers[MAX_EXEC_ARGS];
+
+    if (argc > 0) {
+        // Copy strings onto user stack from top downwards
+        for (int i = argc - 1; i >= 0; i--) {
+            size_t slen = strlen(kargs[i]) + 1;
+            userStackTop -= slen;
+            memcpy(kStackBase + (userStackTop - 0x00800000), kargs[i], slen);
+            userArgvPointers[i] = userStackTop;
+        }
+
+        // Align to 4-byte boundary
+        userStackTop &= ~3;
+
+        // Push argv[argc] = NULL
+        userStackTop -= 4;
+        *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = 0;
+
+        // Push argv[argc-1] .. argv[0]
+        for (int i = argc - 1; i >= 0; i--) {
+            userStackTop -= 4;
+            *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = userArgvPointers[i];
+        }
+        uint32_t userArgvBase = userStackTop;
+
+        // Push pointer to argv array
+        userStackTop -= 4;
+        *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = userArgvBase;
+
+        // Push argc
+        userStackTop -= 4;
+        *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = (uint32_t)argc;
+    } else {
+        // No arguments: push argv = NULL, argc = 0
+        userStackTop -= 4;
+        *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = 0;
+
+        userStackTop -= 4;
+        *(uint32_t *)(kStackBase + (userStackTop - 0x00800000)) = 0;
+    }
+
     frame->eip = 0x00400000;
-    frame->userEsp = 0x00800000 + PAGE_SIZE - 16;
+    frame->userEsp = userStackTop;
     frame->eax = 0;
     frame->ebx = 0;
     frame->ecx = 0;

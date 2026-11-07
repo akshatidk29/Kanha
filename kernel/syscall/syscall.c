@@ -71,9 +71,10 @@ static int sysFork(struct SyscallFrame *frame) {
 
 static int sysExec(struct SyscallFrame *frame){
     const char *path = (const char *)frame->ebx;
+    const char **argv = (const char **)frame->ecx;
     if(!path)
         return -1;
-    return processExec(frame, path);
+    return processExec(frame, path, argv);
 }
 
 static int sysReadDir(const char* path, char* buf, uint32_t maxLen){
