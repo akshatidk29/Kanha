@@ -18,10 +18,8 @@ int puts(const char *s) {
 }
 
 static void printStr(const char *str) {
-    if (!str) {
-        printStr("(null)");
+    if (!str)
         return;
-    }
     while (*str) {
         putchar(*str++);
     }

@@ -38,7 +38,7 @@ static int parseArgs(char *cmd, char *argv[]) {
 int main(void) {  
 
     while (1) {
-        printf("Kanha OS> ");
+        printf(COLOR_BRIGHT_GREEN "Kanha OS> " COLOR_RESET);
 
         char input[MAX_CMD];
         getline(input, sizeof(input));
