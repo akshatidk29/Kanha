@@ -110,8 +110,9 @@ static void processEntry(void *arg) {
 }
 
 struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
-    if (!code || codeSize == 0 || codeSize > PAGE_SIZE)
+    if (!code || codeSize == 0 || codeSize > PAGE_SIZE) {
         return NULL;
+    }
 
     spinLockAcquire(&processTableLock);
     if (processCount >= MAX_PROCESSES) {
@@ -121,8 +122,10 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
     spinLockRelease(&processTableLock);
 
     struct Process *proc = (struct Process *)kMalloc(sizeof(struct Process));
-    if (!proc)
+    if (!proc) {
         return NULL;
+    }
+    memset(proc, 0, sizeof(struct Process));
 
     proc->pid = nextPid++;
     proc->state = PROCESS_CREATED;
@@ -247,6 +250,11 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
     struct Process *childProc = (struct Process *)kMalloc(sizeof(struct Process));
     if (!childProc)
         return NULL;
+    memset(childProc, 0, sizeof(struct Process));
+
+    for (int i = 0; i < MAX_FD; i++) {
+        childProc->files[i] = parentProc->files[i];
+    }
 
     childProc->pid = nextPid++;
     childProc->state = PROCESS_CREATED;
@@ -404,6 +412,11 @@ int processExec(struct SyscallFrame *frame, const char *path, const char **argv)
     proc->threadList = curr;
     curr->procNext = NULL;
     proc->threadCount = 1;
+
+    for (int i = 3; i < MAX_FD; i++) {
+        proc->files[i].node = NULL;
+        proc->files[i].offset = 0;
+    }
 
     uint32_t codePhys = 0;
     addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00400000, &codePhys);

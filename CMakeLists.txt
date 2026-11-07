@@ -68,6 +68,10 @@ build_user_program(help)
 build_user_program(command)
 build_user_program(shell)
 build_user_program(ls)
+build_user_program(cat)
+build_user_program(touch)
+build_user_program(mkdir)
+build_user_program(writefile)
 
 # Package all user binaries into initrd.tar and convert to initrd.o
 add_custom_command(
@@ -112,6 +116,7 @@ add_executable(kernel.elf
     kernel/fs/vfs.c
     kernel/fs/tarfs.c
     kernel/fs/bcache.c
+    kernel/fs/ext2.c
     ${BUILD_DIR}/initrd.o
 )
 

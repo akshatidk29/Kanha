@@ -2,12 +2,21 @@
 #define KANHA_PROCESS_H
 
 #define MAX_PROCESSES 1024
+#define MAX_FD        16
 
 #include <stdint.h>
 #include <stddef.h>
 
 #include "task/thread.h"
 #include "mm/addressSpace.h"
+
+struct VfsNode;
+
+struct FileDescriptor {
+    struct VfsNode *node; 
+    uint32_t offset;      
+    int flags;           
+};
 
 enum ProcessState {
     PROCESS_CREATED,
@@ -28,6 +37,7 @@ struct Process {
     uint32_t userStackTop;
 
     struct Process *parent;
+    struct FileDescriptor files[MAX_FD];
 };
 
 
