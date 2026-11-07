@@ -20,6 +20,7 @@
 #include "fs/vfs.h"
 #include "fs/tarfs.h"
 #include "drivers/ata.h"
+#include "fs/bcache.h"
 #include "lib/string.h"
 
 extern uint8_t _binary_initrd_tar_start[];
@@ -174,8 +175,9 @@ void kernelMain(struct BootInfo *bootInfo){
     enableInterrupts();
     schedulerInitialize();
 
-    // Initialize ATA
+    // Initialize ATA and Buffer Cache
     ataInitialize();
+    bcacheInitialize();
 
     // Mount Ramdisk
     size_t initrdSize = (size_t)(_binary_initrd_tar_end - _binary_initrd_tar_start);

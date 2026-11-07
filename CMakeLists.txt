@@ -111,6 +111,7 @@ add_executable(kernel.elf
     kernel/syscall/syscall.c
     kernel/fs/vfs.c
     kernel/fs/tarfs.c
+    kernel/fs/bcache.c
     ${BUILD_DIR}/initrd.o
 )
 
@@ -154,7 +155,7 @@ add_custom_target(kanha.img ALL
 set(DISK_IMAGE ${CMAKE_SOURCE_DIR}/disk.img)
 if(NOT EXISTS ${DISK_IMAGE})
     execute_process(
-        COMMAND qemu-img create -f raw ${DISK_IMAGE} 32M
+        COMMAND mke2fs -b 1024 -I 128 -F -O none -m 0 ${DISK_IMAGE} 32M
     )
 endif()
 
