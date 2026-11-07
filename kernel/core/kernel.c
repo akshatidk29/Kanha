@@ -21,6 +21,7 @@
 #include "fs/tarfs.h"
 #include "drivers/ata.h"
 #include "fs/bcache.h"
+#include "fs/ext2.h"
 #include "lib/string.h"
 
 extern uint8_t _binary_initrd_tar_start[];
@@ -175,17 +176,17 @@ void kernelMain(struct BootInfo *bootInfo){
     enableInterrupts();
     schedulerInitialize();
 
-    // Initialize ATA and Buffer Cache
-    ataInitialize();
-    bcacheInitialize();
-
     // Mount Ramdisk
     size_t initrdSize = (size_t)(_binary_initrd_tar_end - _binary_initrd_tar_start);
     tarfsInitialize(_binary_initrd_tar_start, initrdSize);
 
+    // Initialize ATA, Buffer Cache, and Mount ext2 filesystem
+    ataInitialize();
+    bcacheInitialize();
+    ext2Mount(ATA_DRIVE_SLAVE);
+
     // Launch initial user process
     struct VfsNode *initProc = vfsOpen("/bin/shell");
-
     if (initProc) {
         processCreate((uint8_t *)initProc->deviceData, initProc->size);
     }
