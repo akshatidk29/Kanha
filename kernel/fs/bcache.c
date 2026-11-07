@@ -37,7 +37,6 @@ struct Buffer *bcacheGet(uint8_t drive, uint32_t blockNum) {
 
     for (int i = 0; i < BCACHE_NUM_BUFFERS; i++) {
         if (buffers[i].refCount == 0) {
-            // Unused buffers take immediate precedence
             if (!buffers[i].valid) {
                 victim = i;
                 break;
@@ -141,14 +140,12 @@ int bcacheReadBlock(uint8_t drive, uint32_t blockNum, void *dest) {
 }
 
 int bcacheWriteBlock(uint8_t drive, uint32_t blockNum, const void *src) {
-    if (!src) {
+    if (!src)
         return -1;
-    }
 
     struct Buffer *b = bcacheGet(drive, blockNum);
-    if (!b) {
+    if (!b)
         return -1;
-    }
 
     memcpy(b->data, src, BCACHE_BLOCK_SIZE);
     bcacheWrite(b);

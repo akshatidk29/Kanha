@@ -51,6 +51,7 @@ struct Ext2Superblock {
     uint8_t  reserved2[888];         // Unused extended attributes, journal, and hash padding
 } __attribute__((packed));
 
+
 // Block Group Descriptor
 struct Ext2GroupDesc {
     uint32_t blockBitmap;     // Block address of block usage bitmap
@@ -62,6 +63,7 @@ struct Ext2GroupDesc {
     uint16_t pad;             // Alignment padding
     uint8_t  reserved[12];    // Reserved for future extensions
 } __attribute__((packed));
+
 
 // Inode
 struct Ext2Inode {
@@ -81,6 +83,7 @@ struct Ext2Inode {
     uint8_t  reserved[28];       // Unused ACLs and file fragments
 } __attribute__((packed));
 
+
 // Directory Entry Header
 struct Ext2DirEntry {
     uint32_t inode;              // Inode number
@@ -94,25 +97,25 @@ struct Ext2DirEntry {
 
 int ext2Mount(uint8_t drive);
 
-// Reads an inode
+// Read inode
 int ext2ReadInode(uint32_t inodeNum, struct Ext2Inode *outInode);
 
-// Writes an inode
+// Write inode
 int ext2WriteInode(uint32_t inodeNum, const struct Ext2Inode *inInode);
 
-// Allocates a free block
+// Allocate free block
 uint32_t ext2AllocBlock(void);
 
-// Allocates a free inode
+// Allocate free inode
 uint32_t ext2AllocInode(void);
 
-// Creates a new file or directory
+// Create new file or directory
 struct VfsNode *ext2Create(struct VfsNode *parentDir, const char *name, uint32_t mode);
 
-// Reads bytes from a file
+// Read from file
 int ext2Read(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);
 
-// Writes bytes to a file
+// Write to file
 int ext2Write(struct VfsNode *node, uint32_t offset, uint8_t *buffer, size_t size);
 
 #endif

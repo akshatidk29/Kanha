@@ -14,9 +14,8 @@ struct VfsNode* vfsOpen(const char* path){
 
     struct VfsNode *currentNode = vfsRoot;
     
-    while(*path == '/'){
+    while(*path == '/')
         path++;
-    }
     
     char token[32];
 
@@ -56,7 +55,8 @@ struct VfsNode* vfsCreate(const char* path, uint32_t mode){
     char parentPath[64];
     const char *lastSlash = NULL;
     for (const char *p = path; *p != '\0'; p++) {
-        if (*p == '/') lastSlash = p;
+        if (*p == '/') 
+            lastSlash = p;
     }
 
     const char *fileName = NULL;
@@ -68,7 +68,8 @@ struct VfsNode* vfsCreate(const char* path, uint32_t mode){
         fileName = lastSlash + 1;
     } else {
         size_t dlen = lastSlash - path;
-        if (dlen > 63) dlen = 63;
+        if (dlen > 63) 
+            dlen = 63;
         memcpy(parentPath, path, dlen);
         parentPath[dlen] = '\0';
         fileName = lastSlash + 1;
