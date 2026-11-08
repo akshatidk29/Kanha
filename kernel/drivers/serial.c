@@ -3,6 +3,7 @@
 #include "hardware/pic.h"
 #include "drivers/serial.h"
 #include "drivers/stdin.h"
+#include "task/process.h"
 
 int serialInitialize(void) {
     
@@ -29,6 +30,16 @@ void irqHandlerSerial(void) {
         char c = (char)inB(SERIAL_COM1);
         if (c == '\r') {
             c = '\n';
+        }
+        if (c == 3) { // Ctrl+C
+            int fg = processGetForeground();
+            if (fg > 1) {
+                vgaWrite("^C\n");
+                serialWriteString("^C\n");
+                stdinClear();
+                processKill(fg, 130);
+                continue;
+            }
         }
         vgaPutChar(c);        // Echo to screen
         serialWriteChar(c);   // Echo back to terminal

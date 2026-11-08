@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 void stdinInitialize(void);
+void stdinClear(void);
 
 void stdinPutChar(char c);
 int stdinGetChar(void);

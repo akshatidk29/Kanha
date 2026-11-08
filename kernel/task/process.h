@@ -54,4 +54,8 @@ int processWaitPid(int pid, int *status, int options);
 
 void processExit(int exitCode);
 
+int processKill(int pid, int exitCode);
+int processGetForeground(void);
+void processSetForeground(int pid);
+
 #endif

@@ -4,6 +4,7 @@
 #include "drivers/serial.h"
 #include "drivers/keyboard.h"
 #include "drivers/stdin.h"
+#include "task/process.h"
 
 static const char codeToAscii[128] = {
     [0x01] = 0,     // Escape
@@ -101,6 +102,12 @@ void keyboardInitialize(void) {
 }
 
 void irqHandlerKeyboard(void) {
+    uint8_t status = inB(0x64);
+    if (!(status & 0x01)) {
+        picSendEOI(1);
+        return;
+    }
+
     uint8_t scanByte = inB(0x60);
 
     // Extended scancode prefix
@@ -110,11 +117,11 @@ void irqHandlerKeyboard(void) {
         return;
     }
 
-    // Handle extended keys (Arrow keys, Keypad /, Keypad Enter, Right Ctrl, Right Alt)
+    // Extended keys
     if (extended) {
         extended = 0;
         if (!(scanByte & 0x80)) {
-            // Extended key make codes (key press)
+            // Extended key make codes
             if (scanByte == 0x48) {        // Up Arrow
                 stdinPutChar('\033');
                 stdinPutChar('[');
@@ -145,7 +152,7 @@ void irqHandlerKeyboard(void) {
                 altPressed = 1;
             }
         } else {
-            // Extended key break codes (key release)
+            // Extended key break codes
             uint8_t rel = scanByte & 0x7F;
             if (rel == 0x1D) {
                 ctrlPressed = 0;
@@ -157,7 +164,7 @@ void irqHandlerKeyboard(void) {
         return;
     }
 
-    // Handle normal key release (break codes)
+    // Normal key release
     if (scanByte & 0x80) {
         uint8_t releaseCode = scanByte & 0x7F;
         if (releaseCode == 0x2A || releaseCode == 0x36) {
@@ -171,7 +178,7 @@ void irqHandlerKeyboard(void) {
         return;
     }
 
-    // Handle normal key press (make codes)
+    // Normal key press
     if (scanByte == 0x2A || scanByte == 0x36) {
         shiftPressed = 1;
         picSendEOI(1);
@@ -198,7 +205,7 @@ void irqHandlerKeyboard(void) {
         return;
     }
 
-    // Handle Numpad keys when NumLock is OFF (navigate)
+    // Numpad keys when NumLock is OFF
     if (!numLock && scanByte >= 0x47 && scanByte <= 0x53) {
         if (scanByte == 0x48) {        // Keypad 8 -> Up Arrow
             stdinPutChar('\033');
@@ -221,7 +228,7 @@ void irqHandlerKeyboard(void) {
         return;
     }
 
-    // Unmapped or out of range scancode
+    // Unmapped scancode
     if (scanByte >= 128) {
         picSendEOI(1);
         return;
@@ -233,20 +240,33 @@ void irqHandlerKeyboard(void) {
         return;
     }
 
-    // Handle Ctrl key combinations (Ctrl+A = 1, Ctrl+C = 3, Ctrl+L = 12, etc.)
+    // Ctrl key combinations
     if (ctrlPressed) {
         if (c >= 'a' && c <= 'z') {
             c = c - 'a' + 1;
         } else if (c >= 'A' && c <= 'Z') {
             c = c - 'A' + 1;
         }
+
+        if (c == 3) { // Ctrl+C
+            int fg = processGetForeground();
+            if (fg > 1) { 
+                vgaWrite("^C\n");
+                serialWriteString("^C\n");
+                stdinClear();
+                processKill(fg, 130);
+                picSendEOI(1);
+                return;
+            }
+        }
+
         // Send directly to stdin without echoing control characters to VGA
         stdinPutChar(c);
         picSendEOI(1);
         return;
     }
 
-    // Handle Shift and Caps Lock transformations
+    // Shift and Caps Lock transformations
     if ((shiftPressed ^ capsLock) && (c >= 'a' && c <= 'z')) {
         c -= 32;
     } else if (shiftPressed) {
@@ -276,7 +296,6 @@ void irqHandlerKeyboard(void) {
         }
     }
 
-    // Echo printable characters, newline, and backspace
     vgaPutChar(c);
     serialWriteChar(c);
     stdinPutChar(c);

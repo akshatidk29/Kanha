@@ -12,6 +12,13 @@ void stdinInitialize(void) {
     stdinTail = 0;
 }
 
+void stdinClear(void) {
+    uint32_t flags = disableInterrupts();
+    stdinHead = 0;
+    stdinTail = 0;
+    restoreInterrupts(flags);
+}
+
 void stdinPutChar(char c) {
     uint32_t next = (stdinHead + 1) % STDIN_BUF_SIZE;
     if (next != stdinTail) {

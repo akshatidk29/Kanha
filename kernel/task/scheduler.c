@@ -149,6 +149,11 @@ void schedulerTimer(void){
         }
     }
 
+    if (currentThread && currentThread->state == THREAD_TERMINATED) {
+        yield();
+        return;
+    }
+
     if(tickCount % TIME_QUANTUM == 0){
         yield();
     }

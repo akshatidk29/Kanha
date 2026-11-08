@@ -491,6 +491,47 @@ struct Process *currentProcess(void) {
     return curr->process;
 }
 
+static int foregroundPid = -1;
+
+int processGetForeground(void) {
+    return foregroundPid;
+}
+
+void processSetForeground(int pid) {
+    foregroundPid = pid;
+}
+
+int processKill(int pid, int exitCode) {
+    if (pid <= 0)
+        return -1;
+
+    spinLockAcquire(&processTableLock);
+    struct Process *target = NULL;
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        if (processTable[i] && (int)processTable[i]->pid == pid) {
+            target = processTable[i];
+            break;
+        }
+    }
+
+    if (!target || target->state == PROCESS_TERMINATED) {
+        spinLockRelease(&processTableLock);
+        return -1;
+    }
+
+    target->exitCode = exitCode;
+    target->state = PROCESS_TERMINATED;
+
+    struct Thread *t = target->threadList;
+    while (t) {
+        t->state = THREAD_TERMINATED;
+        t = t->procNext;
+    }
+
+    spinLockRelease(&processTableLock);
+    return 0;
+}
+
 void processExit(int exitCode) {
     struct Process *proc = currentProcess();
     if (!proc || proc->state == PROCESS_TERMINATED) {
@@ -519,6 +560,10 @@ int processWaitPid(int pid, int *status, int options) {
     if (!parent)
         return -1;
 
+    if (pid > 0) {
+        foregroundPid = pid;
+    }
+
     while (1) {
         int hasChildren = 0;
         struct Process *target = NULL;
@@ -546,15 +591,24 @@ int processWaitPid(int pid, int *status, int options) {
             }
         } else {
             spinLockRelease(&processTableLock);
+            if (foregroundPid == pid) {
+                foregroundPid = -1;
+            }
             return -1;
         }
 
         if (!hasChildren) {
             spinLockRelease(&processTableLock);
+            if (foregroundPid == pid) {
+                foregroundPid = -1;
+            }
             return -1;
         }
 
         if (target) {
+            if (foregroundPid == (int)target->pid) {
+                foregroundPid = -1;
+            }
             int childPid = (int)target->pid;
             int childExitCode = target->exitCode;
 
@@ -598,6 +652,9 @@ int processWaitPid(int pid, int *status, int options) {
         spinLockRelease(&processTableLock);
 
         if (options & 1) {
+            if (foregroundPid == pid) {
+                foregroundPid = -1;
+            }
             return 0;
         }
 
