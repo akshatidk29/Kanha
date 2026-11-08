@@ -2,6 +2,12 @@
 #include "ulib.h"
 
 int main(void) {
-    printf("Type 'command' to know all the programs!\n");
+    printf(COLOR_YELLOW "Available Commands\n" COLOR_RESET);
+    char *argv[3];
+    argv[0] = "ls";
+    argv[1] = "/bin";
+    argv[2] = NULL;
+    exec("/bin/ls", argv);
+
     return 0;
 }

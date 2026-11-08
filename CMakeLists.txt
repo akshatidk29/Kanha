@@ -63,9 +63,7 @@ macro(build_user_program name)
 endmacro()
 
 # User programs compilation
-build_user_program(hello)
 build_user_program(help)
-build_user_program(command)
 build_user_program(shell)
 build_user_program(ls)
 build_user_program(cat)

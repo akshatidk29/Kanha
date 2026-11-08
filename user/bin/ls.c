@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
 
     int count = readDir(path, buffer, sizeof(buffer));
     if (count < 0) {
-        printf("Directory not found: %s\n", path);
+        printf(COLOR_BRIGHT_RED "Directory not found: %s" COLOR_RESET "\n", path);
         return 1;
     } else if (count > 0) {
         printf("%s", buffer);

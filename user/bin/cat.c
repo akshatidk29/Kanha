@@ -1,15 +1,16 @@
 #include "stdio.h"
 #include "ulib.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
+
     if (argc < 2) {
-        printf("Usage: cat <filename>\n");
+        printf(COLOR_CYAN "Usage: cat <filename>\n" COLOR_RESET);
         return 1;
     }
 
     int fd = open(argv[1], 0);
     if (fd < 0) {
-        printf("cat: cannot open %s\n", argv[1]);
+        printf(COLOR_BRIGHT_RED "cat: cannot open %s\n" COLOR_RESET, argv[1]);
         return 1;
     }
 
