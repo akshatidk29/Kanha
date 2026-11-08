@@ -152,6 +152,23 @@ int getline(char *buf, size_t maxLen) {
         char c = getchar();
         if (c == '\r' || c == '\n') {
             break;
+        } else if (c == 3) { // Ctrl+C
+            putchar('^');
+            putchar('C');
+            putchar('\n');
+            buf[0] = '\0';
+            return -1;
+        } else if (c == 4) { // Ctrl+D
+            if (i == 0) {
+                return -2;
+            }
+        } else if (c == 21) { // Ctrl+U
+            while (i > 0) {
+                putchar('\b');
+                putchar(' ');
+                putchar('\b');
+                i--;
+            }
         } else if (c == '\b' || c == 127) {
             if (i > 0) {
                 i--;

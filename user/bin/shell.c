@@ -41,7 +41,14 @@ int main(void) {
         printf(COLOR_GREEN "Kanha OS> " COLOR_RESET);
 
         char input[MAX_CMD];
-        getline(input, sizeof(input));
+        int len = getline(input, sizeof(input));
+        if (len < 0) {
+            if (len == -2) {
+                printf("exit\n");
+                break;
+            }
+            continue; 
+        }
 
         char *argv[MAX_ARGS];
         int argc = parseArgs(input, argv);

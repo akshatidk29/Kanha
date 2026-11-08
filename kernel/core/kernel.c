@@ -1,6 +1,7 @@
 #include "drivers/vga.h"
 #include "drivers/serial.h"
 #include "drivers/stdin.h"
+#include "drivers/keyboard.h"
 #include "interrupts/idt.h"
 #include "hardware/io.h"
 #include "hardware/pic.h"
@@ -52,6 +53,7 @@ void kernelMain(struct BootInfo *bootInfo){
     pitInitialize(1000);       // Initialize PIT with 1KHz frequency
     serialInitialize();
     stdinInitialize();
+    keyboardInitialize();
     pmmInitialize(bootInfo);
     
     if(pagingInitialize() != 0)

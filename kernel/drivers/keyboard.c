@@ -6,7 +6,7 @@
 #include "drivers/stdin.h"
 
 static const char codeToAscii[128] = {
-    [0x01] = 0,
+    [0x01] = 0,     // Escape
     [0x02] = '1',
     [0x03] = '2',
     [0x04] = '3',
@@ -17,7 +17,6 @@ static const char codeToAscii[128] = {
     [0x09] = '8',
     [0x0A] = '9',
     [0x0B] = '0',
-
     [0x0C] = '-',
     [0x0D] = '=',
     [0x0E] = '\b',
@@ -33,11 +32,10 @@ static const char codeToAscii[128] = {
     [0x17] = 'i',
     [0x18] = 'o',
     [0x19] = 'p',
-
     [0x1A] = '[',
     [0x1B] = ']',
     [0x1C] = '\n',
-    [0x1D] = ' ',
+    [0x1D] = 0,     // Left Ctrl
 
     [0x1E] = 'a',
     [0x1F] = 's',
@@ -48,12 +46,11 @@ static const char codeToAscii[128] = {
     [0x24] = 'j',
     [0x25] = 'k',
     [0x26] = 'l',
-
     [0x27] = ';',
     [0x28] = '\'',
     [0x29] = '`',
-    [0x2A] = '\\',
-    [0x2B] = ' ',
+    [0x2A] = 0,     // Left Shift
+    [0x2B] = '\\',
 
     [0x2C] = 'z',
     [0x2D] = 'x',
@@ -62,101 +59,227 @@ static const char codeToAscii[128] = {
     [0x30] = 'b',
     [0x31] = 'n',
     [0x32] = 'm',
-
     [0x33] = ',',
     [0x34] = '.',
     [0x35] = '/',
-    [0x36] = '*',
+    [0x36] = 0,     // Right Shift
+    [0x37] = '*',   // Keypad *
+    [0x38] = 0,     // Left Alt
+    [0x39] = ' ',   // Space
+    [0x3A] = 0,     // Caps Lock
 
-    [0x39] = ' ',
-
-    [0x3A] = ' ',
-    [0x3B] = ' ',
-    [0x3C] = ' ',
-    [0x3D] = ' ',
-    [0x3E] = ' ',
-    [0x3F] = ' ',
-    [0x40] = ' ',
-    [0x41] = ' ',
-    [0x42] = ' ',
-    [0x43] = ' ',
-    [0x44] = ' ',
-    [0x45] = ' ',
-    [0x46] = ' ',
-    [0x47] = ' ',
-    [0x48] = ' ',
-    [0x49] = ' ',
-    [0x4A] = ' ',
-    [0x4B] = ' ',
-    [0x4C] = ' ',
-    [0x4D] = ' ',
-    [0x4E] = ' ',
-    [0x4F] = ' ',
-    [0x50] = ' ',
-    [0x51] = ' ',
-    [0x52] = ' ',
-    [0x53] = ' ',
-    [0x54] = ' ',
-    [0x55] = ' ',
-    [0x56] = ' ',
-    [0x57] = ' ',
-    [0x58] = ' ',
-    [0x59] = ' ',
-    [0x5A] = ' ',
-    [0x5B] = ' ',
-    [0x5C] = ' ',
-    [0x5D] = ' ',
-    [0x5E] = ' ',
-    [0x5F] = ' ',
-    [0x60] = ' ',
-    [0x61] = ' ',
-    [0x62] = ' ',
-    [0x63] = ' ',
-    [0x64] = ' ',
-    [0x65] = ' ',
-    [0x66] = ' ',
-    [0x67] = ' ',
-    [0x68] = ' ',
-    [0x69] = ' ',
-    [0x6A] = ' ',
-    [0x6B] = ' ',
-    [0x6C] = ' ',
-    [0x6D] = ' ',
-    [0x6E] = ' ',
-    [0x6F] = ' ',
-    [0x70] = ' ',
-    [0x71] = ' ',
-    [0x72] = ' ',
-    [0x73] = ' ',
-    [0x74] = ' ',
-    [0x75] = ' ',
-    [0x76] = ' ',
-    [0x77] = ' ',
-    [0x78] = ' ',
-    [0x79] = ' ',
-    [0x7A] = ' ',
-    [0x7B] = ' ',
-    [0x7C] = ' ',
-    [0x7D] = ' ',
-    [0x7E] = ' ',
+    // Numeric Keypad
+    [0x47] = '7',
+    [0x48] = '8',
+    [0x49] = '9',
+    [0x4A] = '-',
+    [0x4B] = '4',
+    [0x4C] = '5',
+    [0x4D] = '6',
+    [0x4E] = '+',
+    [0x4F] = '1',
+    [0x50] = '2',
+    [0x51] = '3',
+    [0x52] = '0',
+    [0x53] = '.',
 };
 
+static int shiftPressed = 0;   
+static int ctrlPressed  = 0;   
+static int altPressed   = 0;   
+static int capsLock     = 0;   
+static int numLock      = 1;   // Default NumLock to enabled
+static int extended     = 0; 
 
-void keyboardInitialize(void){
-    return;
+void keyboardInitialize(void) {
+    shiftPressed = 0;
+    ctrlPressed = 0;
+    altPressed = 0;
+    capsLock = 0;
+    numLock = 1;
+    extended = 0;
 }
 
-void irqHandlerKeyboard(void){
+void irqHandlerKeyboard(void) {
     uint8_t scanByte = inB(0x60);
 
-    if (!(scanByte & 0x80)){
-        char c = codeToAscii[scanByte];
-        if (c != 0) {
-            vgaPutChar(c);
-            serialWriteChar(c);
-            stdinPutChar(c);
+    // Extended scancode prefix
+    if (scanByte == 0xE0) {
+        extended = 1;
+        picSendEOI(1);
+        return;
+    }
+
+    // Handle extended keys (Arrow keys, Keypad /, Keypad Enter, Right Ctrl, Right Alt)
+    if (extended) {
+        extended = 0;
+        if (!(scanByte & 0x80)) {
+            // Extended key make codes (key press)
+            if (scanByte == 0x48) {        // Up Arrow
+                stdinPutChar('\033');
+                stdinPutChar('[');
+                stdinPutChar('A');
+            } else if (scanByte == 0x50) { // Down Arrow
+                stdinPutChar('\033');
+                stdinPutChar('[');
+                stdinPutChar('B');
+            } else if (scanByte == 0x4D) { // Right Arrow
+                stdinPutChar('\033');
+                stdinPutChar('[');
+                stdinPutChar('C');
+            } else if (scanByte == 0x4B) { // Left Arrow
+                stdinPutChar('\033');
+                stdinPutChar('[');
+                stdinPutChar('D');
+            } else if (scanByte == 0x35) { // Keypad /
+                vgaPutChar('/');
+                serialWriteChar('/');
+                stdinPutChar('/');
+            } else if (scanByte == 0x1C) { // Keypad Enter
+                vgaPutChar('\n');
+                serialWriteChar('\n');
+                stdinPutChar('\n');
+            } else if (scanByte == 0x1D) { // Right Ctrl
+                ctrlPressed = 1;
+            } else if (scanByte == 0x38) { // Right Alt
+                altPressed = 1;
+            }
+        } else {
+            // Extended key break codes (key release)
+            uint8_t rel = scanByte & 0x7F;
+            if (rel == 0x1D) {
+                ctrlPressed = 0;
+            } else if (rel == 0x38) {
+                altPressed = 0;
+            }
+        }
+        picSendEOI(1);
+        return;
+    }
+
+    // Handle normal key release (break codes)
+    if (scanByte & 0x80) {
+        uint8_t releaseCode = scanByte & 0x7F;
+        if (releaseCode == 0x2A || releaseCode == 0x36) {
+            shiftPressed = 0;
+        } else if (releaseCode == 0x1D) {
+            ctrlPressed = 0;
+        } else if (releaseCode == 0x38) {
+            altPressed = 0;
+        }
+        picSendEOI(1);
+        return;
+    }
+
+    // Handle normal key press (make codes)
+    if (scanByte == 0x2A || scanByte == 0x36) {
+        shiftPressed = 1;
+        picSendEOI(1);
+        return;
+    }
+    if (scanByte == 0x1D) {
+        ctrlPressed = 1;
+        picSendEOI(1);
+        return;
+    }
+    if (scanByte == 0x38) {
+        altPressed = 1;
+        picSendEOI(1);
+        return;
+    }
+    if (scanByte == 0x3A) {
+        capsLock = !capsLock;
+        picSendEOI(1);
+        return;
+    }
+    if (scanByte == 0x45) { // NumLock toggle
+        numLock = !numLock;
+        picSendEOI(1);
+        return;
+    }
+
+    // Handle Numpad keys when NumLock is OFF (navigate)
+    if (!numLock && scanByte >= 0x47 && scanByte <= 0x53) {
+        if (scanByte == 0x48) {        // Keypad 8 -> Up Arrow
+            stdinPutChar('\033');
+            stdinPutChar('[');
+            stdinPutChar('A');
+        } else if (scanByte == 0x50) { // Keypad 2 -> Down Arrow
+            stdinPutChar('\033');
+            stdinPutChar('[');
+            stdinPutChar('B');
+        } else if (scanByte == 0x4B) { // Keypad 4 -> Left Arrow
+            stdinPutChar('\033');
+            stdinPutChar('[');
+            stdinPutChar('D');
+        } else if (scanByte == 0x4D) { // Keypad 6 -> Right Arrow
+            stdinPutChar('\033');
+            stdinPutChar('[');
+            stdinPutChar('C');
+        }
+        picSendEOI(1);
+        return;
+    }
+
+    // Unmapped or out of range scancode
+    if (scanByte >= 128) {
+        picSendEOI(1);
+        return;
+    }
+
+    char c = codeToAscii[scanByte];
+    if (c == 0) {
+        picSendEOI(1);
+        return;
+    }
+
+    // Handle Ctrl key combinations (Ctrl+A = 1, Ctrl+C = 3, Ctrl+L = 12, etc.)
+    if (ctrlPressed) {
+        if (c >= 'a' && c <= 'z') {
+            c = c - 'a' + 1;
+        } else if (c >= 'A' && c <= 'Z') {
+            c = c - 'A' + 1;
+        }
+        // Send directly to stdin without echoing control characters to VGA
+        stdinPutChar(c);
+        picSendEOI(1);
+        return;
+    }
+
+    // Handle Shift and Caps Lock transformations
+    if ((shiftPressed ^ capsLock) && (c >= 'a' && c <= 'z')) {
+        c -= 32;
+    } else if (shiftPressed) {
+        switch (c) {
+            case '1': c = '!'; break;
+            case '2': c = '@'; break;
+            case '3': c = '#'; break;
+            case '4': c = '$'; break;
+            case '5': c = '%'; break;
+            case '6': c = '^'; break;
+            case '7': c = '&'; break;
+            case '8': c = '*'; break;
+            case '9': c = '('; break;
+            case '0': c = ')'; break;
+            case '-': c = '_'; break;
+            case '=': c = '+'; break;
+            case '[': c = '{'; break;
+            case ']': c = '}'; break;
+            case ';': c = ':'; break;
+            case '\'': c = '"'; break;
+            case '`': c = '~'; break;
+            case '\\': c = '|'; break;
+            case ',': c = '<'; break;
+            case '.': c = '>'; break;
+            case '/': c = '?'; break;
+            default: break;
         }
     }
+
+    // Echo printable characters, newline, and backspace
+    vgaPutChar(c);
+    serialWriteChar(c);
+    stdinPutChar(c);
+
     picSendEOI(1);
-    return;
 }
