@@ -48,6 +48,8 @@ Kanha is a 32-bit x86 monolithic operating system kernel written from scratch in
 * `SYS_OPEN`    : Open or create a file with access flags.
 * `SYS_CLOSE`   : Close an open file descriptor.
 * `SYS_MKDIR`   : Create a new directory.
+* `SYS_GETCWD`  : Get current process working directory.
+* `SYS_CHDIR`   : Change current process working directory.
 
 ### User Space
 * Custom C runtime startup passing `argc` and `argv` to `main(int argc, char **argv)`.

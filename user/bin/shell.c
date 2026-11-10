@@ -37,8 +37,11 @@ static int parseArgs(char *cmd, char *argv[]) {
 
 int main(void) {  
 
+    char cwd[256];
+    
     while (1) {
-        printf(COLOR_GREEN "Kanha OS> " COLOR_RESET);
+        getCwd(cwd);
+        printf(COLOR_GREEN "Kanha OS:" COLOR_CYAN "%s$ " COLOR_RESET, cwd);
 
         char input[MAX_CMD];
         int len = getline(input, sizeof(input));
@@ -60,6 +63,17 @@ int main(void) {
         if (strcmp(argv[0], "exit") == 0) {
             printf("Exiting\n");
             break;
+        }else if(strcmp(argv[0], "pwd") == 0){
+            char cwd[256];
+            getCwd(cwd);
+            printf("%s\n", cwd);
+            continue;
+        }else if(strcmp(argv[0], "cd") == 0){
+            const char *target = (argc > 1) ? argv[1] : "/";
+            if(chDir(target) != 0){
+                printf("cd: %s: No such file or directory\n", target);
+            }
+            continue;
         }
 
         // Execute
@@ -67,7 +81,7 @@ int main(void) {
 
         if (id == 0) {
             
-            if (argv[0][0] == '/') {
+            if (argv[0][0] == '/' || (argv[0][0] == '.' && argv[0][1] == '/')) {
                 exec(argv[0], argv);
             } else {
                 // search in /bin/
