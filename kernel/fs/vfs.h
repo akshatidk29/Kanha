@@ -34,6 +34,8 @@ struct VfsNode {
 };
 
 
+int vfsResolvePath(const char *inPath, char *outPath, size_t maxLen);
+
 struct VfsNode* vfsOpen(const char* path);
 struct VfsNode* vfsCreate(const char* path, uint32_t mode);
 

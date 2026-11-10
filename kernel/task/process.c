@@ -82,8 +82,8 @@ void processInitialize(void) {
 
     kernelProcess.pid = 0;
     kernelProcess.state = PROCESS_RUNNING;
-    kernelProcess.exitCode = 0;     
-
+    kernelProcess.exitCode = 0;
+    strcpy(kernelProcess.cwd, "/");
     kernelProcess.addressSpace.pageDirectory = getKernelPageDirectory();
     kernelProcess.entryPoint = 0;
     kernelProcess.userStackTop = 0;
@@ -129,6 +129,7 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
 
     proc->pid = nextPid++;
     proc->state = PROCESS_CREATED;
+    strcpy(proc->cwd, "/");
     proc->exitCode = 0;
     proc->parent = currentProcess();
 
@@ -258,6 +259,7 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
 
     childProc->pid = nextPid++;
     childProc->state = PROCESS_CREATED;
+    strcpy(childProc->cwd, parentProc->cwd);
     childProc->exitCode = 0;
     childProc->parent = parentProc;
 

@@ -28,7 +28,7 @@ struct Process {
     uint32_t pid;
     enum ProcessState state;
     int exitCode;
-
+    char cwd[128];
     struct AddressSpace addressSpace;
     struct Thread *mainThread;
     struct Thread *threadList;

@@ -5,7 +5,7 @@
 int main(int argc, char **argv) {
     
     char buffer[256];
-    const char *path = "/";
+    const char *path = ".";
 
     if (argc > 1 && argv[1] != NULL && argv[1][0] != '\0') {
         path = argv[1];
