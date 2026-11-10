@@ -25,6 +25,8 @@ int serialInitialize(void) {
     return 0;
 }
 
+static int serialEscState = 0;
+
 void irqHandlerSerial(void) {
     while (serialReceived()) {
         char c = (char)inB(SERIAL_COM1);
@@ -41,9 +43,32 @@ void irqHandlerSerial(void) {
                 continue;
             }
         }
-        vgaPutChar(c);        // Echo to screen
-        serialWriteChar(c);   // Echo back to terminal
-        stdinPutChar(c);      // Feed into stdin buffer
+
+        int shouldEcho = 1;
+        if (c == '\033') {
+            serialEscState = 1;
+            shouldEcho = 0;
+        } else if (serialEscState == 1) {
+            if (c == '[') {
+                serialEscState = 2;
+            } else {
+                serialEscState = 0;
+            }
+            shouldEcho = 0;
+        } else if (serialEscState == 2) {
+            serialEscState = 0;
+            shouldEcho = 0;
+        }
+
+        if (c == '\b' || c == 127) {
+            shouldEcho = 0;
+        }
+
+        if (shouldEcho) {
+            vgaPutChar(c);        // Echo to screen
+            serialWriteChar(c);   // Echo back to terminal
+        }
+        stdinPutChar(c);          // Feed into stdin buffer
     }
     picSendEOI(4);
 }

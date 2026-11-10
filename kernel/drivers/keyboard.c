@@ -296,8 +296,10 @@ void irqHandlerKeyboard(void) {
         }
     }
 
-    vgaPutChar(c);
-    serialWriteChar(c);
+    if (c != '\b' && c != 127) {
+        vgaPutChar(c);
+        serialWriteChar(c);
+    }
     stdinPutChar(c);
 
     picSendEOI(1);
