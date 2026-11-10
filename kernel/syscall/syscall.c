@@ -126,7 +126,36 @@ static int sysWrite(int fd, const char *buf, uint32_t len) {
     return -1; 
 }
 
+static int sysGetCwd(char *buffer){
+    if(!buffer)
+        return -1;
+    struct Process *proc = currentProcess();
+    if(proc && proc->cwd[0] != '\0'){
+        strcpy(buffer, proc->cwd);
+        return 0;
+    }
+    return -1;
+}
 
+static int sysChDir(const char* path){
+    if(!path)
+        return -1;
+
+    char resolvedPath[128];
+    if (vfsResolvePath(path, resolvedPath, sizeof(resolvedPath)) != 0)
+        return -1;
+
+    struct VfsNode* node = vfsOpen(resolvedPath);
+    if(!node || node->type != DIR)
+        return -1;
+    
+    struct Process* proc = currentProcess();
+    if(proc){
+        strcpy(proc->cwd, resolvedPath);
+        return 0;
+    }
+    return -1;
+}
 
 static int sysMkdir(const char *path) {
     if (!path)
@@ -284,6 +313,18 @@ void syscallHandler(struct SyscallFrame *frame) {
         case SYS_MKDIR: {
             const char *path = (const char *)frame->ebx;
             frame->eax = sysMkdir(path);
+            break;
+        }
+
+        case SYS_GETCWD: {
+            char* buffer = (char*) frame->ebx;
+            frame->eax = sysGetCwd(buffer);
+            break;
+        }
+
+        case SYS_CHDIR: {
+            const char *path = (const char *)frame->ebx;
+            frame->eax = sysChDir(path);
             break;
         }
 

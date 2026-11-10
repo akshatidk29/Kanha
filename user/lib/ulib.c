@@ -81,3 +81,10 @@ int wait(int *status) {
 int readDir(const char *path, char *buf, size_t maxLen) {
     return syscall3(SYS_READDIR, (int)path, (int)buf, (int)maxLen);
 }
+
+int getCwd(char *buf){
+    return syscall1(SYS_GETCWD, (int)buf);
+}
+int chDir(const char *path){
+    return syscall1(SYS_CHDIR, (int)path);
+}

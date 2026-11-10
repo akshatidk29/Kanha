@@ -14,5 +14,6 @@
 #define SYS_OPEN    11
 #define SYS_CLOSE   12
 #define SYS_MKDIR   13
- 
+#define SYS_GETCWD  14
+#define SYS_CHDIR   15
 #endif 

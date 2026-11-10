@@ -26,6 +26,9 @@ int waitpid(int pid, int *status, int options);
 int wait(int *status);
 int readDir(const char *path, char *buf, size_t maxLen);
 
+int getCwd(char *buf);
+int chDir(const char *path);
+
 void yield(void);
 void sleep(uint32_t ms);
 void exit(int status) __attribute__((noreturn));
