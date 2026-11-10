@@ -3,6 +3,7 @@
 
 #define MAX_PROCESSES 1024
 #define MAX_FD        16
+#define USER_CODE_PAGES 16
 
 #include <stdint.h>
 #include <stddef.h>

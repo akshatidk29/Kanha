@@ -109,8 +109,19 @@ static void processEntry(void *arg) {
     jumpToUserMode(proc->entryPoint, proc->userStackTop);
 }
 
+static void freeUserCodePages(struct AddressSpace *as) {
+    if (!as)
+        return;
+    for (uint32_t p = 0; p < USER_CODE_PAGES; p++) {
+        uint32_t phys = 0;
+        if (addressSpaceGetPhysicalAddress(as, 0x00400000 + p * PAGE_SIZE, &phys) == 0 && phys) {
+            pmmDeallocateFrame(phys);
+        }
+    }
+}
+
 struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
-    if (!code || codeSize == 0 || codeSize > PAGE_SIZE) {
+    if (!code || codeSize == 0 || codeSize > USER_CODE_PAGES * PAGE_SIZE) {
         return NULL;
     }
 
@@ -139,32 +150,44 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
         return NULL;
     }
 
-    // Map User Code Page
-    uint32_t codePhys = pmmAllocateFrame();
-    if (!codePhys) {
-        destroyAddressSpace(&proc->addressSpace);
-        kFree(proc);
-        return NULL;
-    }
+    // Map User Code Pages
+    for (uint32_t p = 0; p < USER_CODE_PAGES; p++) {
+        uint32_t codePhys = pmmAllocateFrame();
+        if (!codePhys) {
+            freeUserCodePages(&proc->addressSpace);
+            destroyAddressSpace(&proc->addressSpace);
+            kFree(proc);
+            return NULL;
+        }
 
-    if (addressSpaceMapPage(&proc->addressSpace, 0x00400000, codePhys, PAGE_USER | PAGE_WRITABLE) != 0) {
-        pmmDeallocateFrame(codePhys);
-        destroyAddressSpace(&proc->addressSpace);
-        kFree(proc);
-        return NULL;
-    }
+        if (addressSpaceMapPage(&proc->addressSpace, 0x00400000 + p * PAGE_SIZE, codePhys, PAGE_USER | PAGE_WRITABLE) != 0) {
+            pmmDeallocateFrame(codePhys);
+            freeUserCodePages(&proc->addressSpace);
+            destroyAddressSpace(&proc->addressSpace);
+            kFree(proc);
+            return NULL;
+        }
 
-    // Copy user code into the physical frame
-    uint8_t *codeVirt = (uint8_t *)PHYS_TO_VIRT(codePhys);
-    for (uint32_t i = 0; i < codeSize; i++) {
-        codeVirt[i] = code[i];
+        uint8_t *codeVirt = (uint8_t *)PHYS_TO_VIRT(codePhys);
+        memset(codeVirt, 0, PAGE_SIZE);
+
+        if (p * PAGE_SIZE < codeSize) {
+            uint32_t offset = p * PAGE_SIZE;
+            uint32_t chunk = codeSize - offset;
+            if (chunk > PAGE_SIZE) {
+                chunk = PAGE_SIZE;
+            }
+            for (uint32_t i = 0; i < chunk; i++) {
+                codeVirt[i] = code[offset + i];
+            }
+        }
     }
     proc->entryPoint = 0x00400000;
 
     // Map User Stack Page
     uint32_t stackPhys = pmmAllocateFrame();
     if (!stackPhys) {
-        pmmDeallocateFrame(codePhys);
+        freeUserCodePages(&proc->addressSpace);
         destroyAddressSpace(&proc->addressSpace);
         kFree(proc);
         return NULL;
@@ -172,7 +195,7 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
 
     if (addressSpaceMapPage(&proc->addressSpace, 0x00800000, stackPhys, PAGE_USER | PAGE_WRITABLE) != 0) {
         pmmDeallocateFrame(stackPhys);
-        pmmDeallocateFrame(codePhys);
+        freeUserCodePages(&proc->addressSpace);
         destroyAddressSpace(&proc->addressSpace);
         kFree(proc);
         return NULL;
@@ -189,7 +212,7 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
     struct Thread *thread = threadCreate(processEntry, proc);
     if (!thread) {
         pmmDeallocateFrame(stackPhys);
-        pmmDeallocateFrame(codePhys);
+        freeUserCodePages(&proc->addressSpace);
         destroyAddressSpace(&proc->addressSpace);
         kFree(proc);
         return NULL;
@@ -224,7 +247,7 @@ struct Process *processCreate(const uint8_t *code, uint32_t codeSize) {
     if (addProcess(proc) != 0) {
         thread->state = THREAD_TERMINATED;
         pmmDeallocateFrame(stackPhys);
-        pmmDeallocateFrame(codePhys);
+        freeUserCodePages(&proc->addressSpace);
         destroyAddressSpace(&proc->addressSpace);
         kFree(proc);
         return NULL;
@@ -269,29 +292,37 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
         return NULL;
     }
 
-    // Map User Code Page
-    uint32_t childCodePhys = pmmAllocateFrame();
-    if (!childCodePhys) {
-        destroyAddressSpace(&childProc->addressSpace);
-        kFree(childProc);
-        return NULL;
-    }
+    // Map User Code Pages
+    for (uint32_t p = 0; p < USER_CODE_PAGES; p++) {
+        uint32_t childCodePhys = pmmAllocateFrame();
+        if (!childCodePhys) {
+            freeUserCodePages(&childProc->addressSpace);
+            destroyAddressSpace(&childProc->addressSpace);
+            kFree(childProc);
+            return NULL;
+        }
 
-    if (addressSpaceMapPage(&childProc->addressSpace, 0x00400000, childCodePhys, PAGE_USER | PAGE_WRITABLE) != 0) {
-        pmmDeallocateFrame(childCodePhys);
-        destroyAddressSpace(&childProc->addressSpace);
-        kFree(childProc);
-        return NULL;
-    }
+        if (addressSpaceMapPage(&childProc->addressSpace, 0x00400000 + p * PAGE_SIZE, childCodePhys, PAGE_USER | PAGE_WRITABLE) != 0) {
+            pmmDeallocateFrame(childCodePhys);
+            freeUserCodePages(&childProc->addressSpace);
+            destroyAddressSpace(&childProc->addressSpace);
+            kFree(childProc);
+            return NULL;
+        }
 
-    uint32_t parentCodePhys = 0;
-    addressSpaceGetPhysicalAddress(&parentProc->addressSpace, 0x00400000, &parentCodePhys);
-    memcpy((void *)PHYS_TO_VIRT(childCodePhys), (void *)PHYS_TO_VIRT(parentCodePhys), PAGE_SIZE);
+        uint32_t parentCodePhys = 0;
+        addressSpaceGetPhysicalAddress(&parentProc->addressSpace, 0x00400000 + p * PAGE_SIZE, &parentCodePhys);
+        if (parentCodePhys) {
+            memcpy((void *)PHYS_TO_VIRT(childCodePhys), (void *)PHYS_TO_VIRT(parentCodePhys), PAGE_SIZE);
+        } else {
+            memset((void *)PHYS_TO_VIRT(childCodePhys), 0, PAGE_SIZE);
+        }
+    }
     
     // Map User Stack Page
     uint32_t childStackPhys = pmmAllocateFrame();
     if (!childStackPhys) {
-        pmmDeallocateFrame(childCodePhys);
+        freeUserCodePages(&childProc->addressSpace);
         destroyAddressSpace(&childProc->addressSpace);
         kFree(childProc);
         return NULL;
@@ -299,7 +330,7 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
 
     if (addressSpaceMapPage(&childProc->addressSpace, 0x00800000, childStackPhys, PAGE_USER | PAGE_WRITABLE) != 0) {
         pmmDeallocateFrame(childStackPhys);
-        pmmDeallocateFrame(childCodePhys);
+        freeUserCodePages(&childProc->addressSpace);
         destroyAddressSpace(&childProc->addressSpace);
         kFree(childProc);
         return NULL;
@@ -316,7 +347,7 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
     void *kstack = kMalloc(STACK_SIZE);
     if (!kstack) {
         pmmDeallocateFrame(childStackPhys);
-        pmmDeallocateFrame(childCodePhys);
+        freeUserCodePages(&childProc->addressSpace);
         destroyAddressSpace(&childProc->addressSpace);
         kFree(childProc);
         return NULL;
@@ -325,7 +356,7 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
     struct Thread *childThread = (struct Thread *)kMalloc(sizeof(struct Thread));
     if (!childThread) {
         pmmDeallocateFrame(childStackPhys);
-        pmmDeallocateFrame(childCodePhys);
+        freeUserCodePages(&childProc->addressSpace);
         destroyAddressSpace(&childProc->addressSpace);
         kFree(kstack);
         kFree(childProc);
@@ -364,7 +395,7 @@ struct Process *processFork(struct SyscallFrame *parentFrame) {
         kFree(childThread);
         kFree(kstack);
         pmmDeallocateFrame(childStackPhys);
-        pmmDeallocateFrame(childCodePhys);
+        freeUserCodePages(&childProc->addressSpace);
         destroyAddressSpace(&childProc->addressSpace);
         kFree(childProc);
         return NULL;
@@ -382,7 +413,7 @@ int processExec(struct SyscallFrame *frame, const char *path, const char **argv)
         return -1;
 
     struct VfsNode *node = vfsOpen(path);
-    if (!node || node->type != REGULAR || node->size > PAGE_SIZE)
+    if (!node || node->type != REGULAR || node->size > USER_CODE_PAGES * PAGE_SIZE)
         return -1;
 
     struct Process *proc = currentProcess();
@@ -420,10 +451,21 @@ int processExec(struct SyscallFrame *frame, const char *path, const char **argv)
         proc->files[i].offset = 0;
     }
 
-    uint32_t codePhys = 0;
-    addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00400000, &codePhys);
-    memset((void *)PHYS_TO_VIRT(codePhys), 0, PAGE_SIZE);
-    vfsRead(node, 0, (uint8_t *)PHYS_TO_VIRT(codePhys), node->size);
+    for (uint32_t p = 0; p < USER_CODE_PAGES; p++) {
+        uint32_t codePhys = 0;
+        addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00400000 + p * PAGE_SIZE, &codePhys);
+        if (codePhys) {
+            memset((void *)PHYS_TO_VIRT(codePhys), 0, PAGE_SIZE);
+            if (p * PAGE_SIZE < node->size) {
+                uint32_t offset = p * PAGE_SIZE;
+                uint32_t chunk = node->size - offset;
+                if (chunk > PAGE_SIZE) {
+                    chunk = PAGE_SIZE;
+                }
+                vfsRead(node, offset, (uint8_t *)PHYS_TO_VIRT(codePhys), chunk);
+            }
+        }
+    }
 
     uint32_t stackPhys = 0;
     addressSpaceGetPhysicalAddress(&proc->addressSpace, 0x00800000, &stackPhys);
@@ -627,10 +669,7 @@ int processWaitPid(int pid, int *status, int options) {
                 *status = childExitCode;
             }
 
-            uint32_t codePhys = 0;
-            if (addressSpaceGetPhysicalAddress(&target->addressSpace, 0x00400000, &codePhys) == 0 && codePhys) {
-                pmmDeallocateFrame(codePhys);
-            }
+            freeUserCodePages(&target->addressSpace);
             uint32_t stackPhys = 0;
             if (addressSpaceGetPhysicalAddress(&target->addressSpace, 0x00800000, &stackPhys) == 0 && stackPhys) {
                 pmmDeallocateFrame(stackPhys);
