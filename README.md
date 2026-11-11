@@ -77,6 +77,12 @@ Kanha is a 32-bit x86 monolithic operating system kernel written from scratch in
   * `/bin/hello`: Simple test binary.
   * `/bin/help`: Display available commands.
 
+<br>
+<p>
+  <img src="docs/Shell.png" alt="Kanha OS Interactive Shell" width="100%" />
+</p>
+<br>
+
 ## Building and Running
 
 ### Prerequisites

@@ -1,3 +1,5 @@
 xv6/
 build/
-disk.img
+
+*.img
+*.drawio
