@@ -516,6 +516,6 @@ int ext2Mount(uint8_t drive) {
 
     ext2PopulateDirectory(&ext2RootDir, 2);
 
-    kprintf("EXT2: Mounted as root filesystem (/)\n");
+    // kprintf("EXT2: Mounted as root filesystem (/)\n");
     return 0;
 }

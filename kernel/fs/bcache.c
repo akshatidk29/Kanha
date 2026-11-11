@@ -14,7 +14,7 @@ void bcacheInitialize(void) {
     spinLockInit(&bcacheLock);
     memset(buffers, 0, sizeof(buffers));
     bcacheClock = 0;
-    kprintf("Initialized %d BCache buffers\n", BCACHE_NUM_BUFFERS);
+    // kprintf("Initialized %d BCache buffers\n", BCACHE_NUM_BUFFERS);
 }
 
 struct Buffer *bcacheGet(uint8_t drive, uint32_t blockNum) {

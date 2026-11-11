@@ -122,11 +122,7 @@ static int ataProbe(uint8_t drive) {
     }
 
     uint32_t sizeMb = (devices[drive].sectorCount * ATA_SECTOR_SIZE) / (1024 * 1024);
-    kprintf("ATA: %s drive detected: %s (%d MB, %d sectors)\n",
-            (drive == 0) ? "Master" : "Slave",
-            devices[drive].model,
-            sizeMb,
-            devices[drive].sectorCount);
+    // kprintf("ATA: %s drive detected: %s (%d MB, %d sectors)\n", (drive == 0) ? "Master" : "Slave", devices[drive].model, sizeMb, devices[drive].sectorCount);
 
     return 0;
 }
@@ -139,7 +135,7 @@ void ataInitialize(void) {
     picSetMask(15);
     outB(ATA_PORT_CONTROL, 0x02);
 
-    kprintf("Initializing Primary ATA bus\n");
+    // kprintf("Initializing Primary ATA bus\n");
     ataProbe(ATA_DRIVE_MASTER);
     ataProbe(ATA_DRIVE_SLAVE);
 }

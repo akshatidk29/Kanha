@@ -68,6 +68,7 @@ build_user_program(shell)
 build_user_program(ls)
 build_user_program(cat)
 build_user_program(touch)
+build_user_program(clear)
 build_user_program(mkdir)
 build_user_program(writefile)
 

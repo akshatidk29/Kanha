@@ -225,7 +225,7 @@ void syscallHandler(struct SyscallFrame *frame) {
             int status = (int)frame->ebx;
             struct Process *proc = currentProcess();
             if (proc) {
-                kprintf("Process %d exited with code %d\n", proc->pid, status);
+                // kprintf("Process %d exited with code %d\n", proc->pid, status);
                 processExit(status);
             }
             break;

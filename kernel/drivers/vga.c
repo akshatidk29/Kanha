@@ -107,6 +107,25 @@ void vgaPutChar(char c){
             }
             ansiState = ANSI_NORMAL;
             return;
+        } else if (c == 'J') {
+            if (ansiParam == 2) {
+                for (uint32_t i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+                    VGA_MEMORY[i * 2] = ' ';
+                    VGA_MEMORY[i * 2 + 1] = vgaCurrentColor;
+                }
+                row = 0;
+                column = 0;
+                vgaCursor();
+            }
+            ansiState = ANSI_NORMAL;
+            return;
+        } else if (c == 'H' || c == 'f') {
+            // Reset cursor
+            row = 0;
+            column = 0;
+            vgaCursor();
+            ansiState = ANSI_NORMAL;
+            return;
         } else {
             ansiState = ANSI_NORMAL;
             return;
