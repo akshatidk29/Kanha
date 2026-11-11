@@ -12,11 +12,23 @@ Kanha is a 32-bit x86 monolithic operating system kernel written from scratch in
 * Interrupt handling via custom IDT, PIC, and PIT timer.
 * Ring 3 to Ring 0 privilege level transitions.
 
+<br>
+<p>
+  <img src="docs/Architecture.png" alt="Kanha OS Architecture" width="65%" />
+</p>
+<br>
+
 ### Memory Management
 * **Physical Memory Manager (PMM)**: Bitmap allocator tracking available physical frames.
 * **Virtual Memory**: Two-level paging (Page Directory and Page Tables) providing private address spaces for each process.
 * **Kernel Heap**: Dynamic allocator (`kMalloc`, `kFree`) supporting block splitting and coalescing.
 * Will implement demand paging soon.
+
+<br>
+<p>
+  <img src="docs/Virtual%20Memory%20Layout.png" alt="Virtual Memory Layout" width="40%" />
+</p>
+<br>
 
 ### Tasking and Scheduling
 * **Preemptive Multitasking**: Round-robin scheduler along with timer interrupts.
