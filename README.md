@@ -85,7 +85,15 @@ cmake --build build
 ```bash
 cmake --build build --target run
 ```
+Or in terminal mode:
+```bash
+cmake --build build --target run-nox
+```
 Or directly with QEMU:
 ```bash
+# GUI mode
 qemu-system-i386 -m 512M -drive file=build/kanha.img,format=raw,index=0,media=disk -drive file=disk.img,format=raw,index=1,media=disk -serial stdio
+
+# Terminal mode
+clear && qemu-system-i386 -m 512M -drive file=build/kanha.img,format=raw,index=0,media=disk -drive file=disk.img,format=raw,index=1,media=disk -nographic -serial mon:stdio
 ```

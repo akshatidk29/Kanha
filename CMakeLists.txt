@@ -156,6 +156,14 @@ add_custom_target(run
     COMMENT "Running Kanha"
 )
 
+# Run-nox 
+add_custom_target(run-nox  
+    COMMAND clear
+    COMMAND qemu-system-i386 -m 512M -drive file=${BUILD_DIR}/kanha.img,format=raw,index=0,media=disk -drive file=${DISK_IMAGE},format=raw,index=1,media=disk -global i8042.kbd-throttle=on -no-reboot -nographic -serial mon:stdio
+    DEPENDS kanha.img
+    COMMENT "Running Kanha in terminal (no GUI)"
+)
+                   
 # Debug
 add_custom_target(debug
     COMMAND qemu-system-i386
